@@ -1,0 +1,18 @@
+<div class="answer-card" style="background: #f0fdf4; border-color: #bbf7d0;">
+    <div style="font-weight: 600; margin-bottom: 0.5rem;">Eval scores</div>
+    <table class="events" style="width: 100%; max-width: 600px;">
+        <tr><th>metric</th><th>score</th><th>details</th></tr>
+        {% for m in r.metrics %}
+        <tr>
+            <td><code>{{ m.name }}</code></td>
+            <td><strong>{{ "%.2f"|format(m.score) }}</strong></td>
+            <td class="muted" style="font-size: 0.8em;">
+                {% for k, v in m.details.items() %}{{ k }}={{ v }}{% if not loop.last %} · {% endif %}{% endfor %}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% if r.evaluator_model_id %}
+    <div class="muted" style="margin-top: 8px; font-size: 0.8em;">judge: <code>{{ r.evaluator_model_id }}</code></div>
+    {% endif %}
+</div>

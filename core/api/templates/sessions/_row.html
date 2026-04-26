@@ -1,0 +1,32 @@
+<div class="row" id="session-{{ s.id }}">
+    <div><a href="/web/sessions/{{ s.id }}"><code>{{ s.id[:8] }}</code></a></div>
+    <div>{{ s.goal }}</div>
+    <div><span class="pill {{ s.state.value }}">{{ s.state.value }}</span></div>
+    <div class="muted">{{ s.updated_at.strftime("%H:%M:%S") }}</div>
+    <div>
+        {% if s.state.value == "pending" %}
+            <form class="inline"
+                  hx-post="/web/sessions/{{ s.id }}/run"
+                  hx-target="#session-{{ s.id }}"
+                  hx-swap="outerHTML"
+                  hx-disabled-elt="find button"
+                  hx-indicator="#session-{{ s.id }} .htmx-indicator">
+                <button title="run LLM">▶ generate</button>
+                <span class="htmx-indicator muted" style="margin-left: 4px;">…</span>
+            </form>
+        {% elif s.state.value == "running" %}
+            <form class="inline" hx-post="/web/sessions/{{ s.id }}/transition" hx-target="#session-{{ s.id }}" hx-swap="outerHTML">
+                <input type="hidden" name="to" value="completed"><button>✓ done</button>
+            </form>
+            <form class="inline" hx-post="/web/sessions/{{ s.id }}/transition" hx-target="#session-{{ s.id }}" hx-swap="outerHTML">
+                <input type="hidden" name="to" value="failed"><button>✗ fail</button>
+            </form>
+        {% endif %}
+        {% if s.state.value not in ["completed", "failed", "cancelled"] %}
+            <form class="inline" hx-delete="/web/sessions/{{ s.id }}" hx-target="#session-{{ s.id }}" hx-swap="outerHTML"
+                  hx-confirm="Cancel this session?">
+                <button class="danger">cancel</button>
+            </form>
+        {% endif %}
+    </div>
+</div>

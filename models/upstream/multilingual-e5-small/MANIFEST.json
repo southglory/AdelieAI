@@ -1,0 +1,27 @@
+{
+  "model_id": "intfloat/multilingual-e5-small",
+  "source": "https://huggingface.co/intfloat/multilingual-e5-small",
+  "revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+  "license": "mit",
+  "license_url": "https://huggingface.co/intfloat/multilingual-e5-small",
+  "architecture": "BertModel (sentence-transformers SBERT)",
+  "params_million": 118,
+  "embedding_dim": 384,
+  "max_seq_length": 512,
+  "downloaded_at": "2026-04-25T17:44:00Z",
+  "downloaded_by": "huggingface_hub.snapshot_download",
+  "files": [
+    "model.safetensors",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+    "config.json",
+    "modules.json",
+    "sentence_bert_config.json",
+    "1_Pooling/config.json"
+  ],
+  "size_bytes": 487724000,
+  "update_policy": "track-upstream",
+  "update_command": "python -m huggingface_hub snapshot_download intfloat/multilingual-e5-small --local-dir models/upstream/multilingual-e5-small --revision main",
+  "note": "Multilingual sentence-transformers embedder (94 langs incl. KO+EN). Used as default Embedder in core/retrieval. Apply 'query: ' or 'passage: ' prefix per E5 convention when relevant."
+}

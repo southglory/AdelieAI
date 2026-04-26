@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block main %}
+<a href="/web/sessions">← back</a>
+<h2>Session <code>{{ s.id[:8] }}</code></h2>
+<dl>
+    <dt>id</dt><dd><code>{{ s.id }}</code></dd>
+    <dt>goal</dt><dd>{{ s.goal }}</dd>
+    <dt>state</dt><dd id="session-state"><span class="pill {{ s.state.value }}">{{ s.state.value }}</span></dd>
+    <dt>model</dt><dd><code>{{ s.model_spec }}</code></dd>
+    <dt>created</dt><dd class="muted">{{ s.created_at.isoformat() }}</dd>
+    <dt>updated</dt><dd class="muted">{{ s.updated_at.isoformat() }}</dd>
+    {% if s.completed_at %}<dt>completed</dt><dd class="muted">{{ s.completed_at.isoformat() }}</dd>{% endif %}
+</dl>
+
+{% set total_in = events | sum(attribute='tokens_in') %}
+{% set total_out = events | sum(attribute='tokens_out') %}
+{% set total_lat = events | sum(attribute='latency_ms') %}
+{% if total_in or total_out %}
+<div class="answer-card" style="background: #fef3c7; border-color: #fcd34d; display: flex; gap: 1.5rem; align-items: center; padding: 0.6rem 1rem;">
+    <div><strong>🪙 tokens</strong> <span class="muted">in/out</span> <code>{{ total_in }} / {{ total_out }}</code></div>
+    <div><strong>⏱ latency</strong> <code>{{ total_lat }}ms</code></div>
+    <div><strong>💰 cost</strong> <span class="muted">자체 호스팅 — $0.00 외부 API</span></div>
+</div>
+{% endif %}
+
+{% set final_event = events | selectattr("event_type.value", "equalto", "final") | list | last %}
+{% if final_event %}
+<h3 style="margin-top: 1.5rem;">Answer
+    <button hx-post="/web/sessions/{{ s.id }}/evaluate"
+            hx-target="#eval-results" hx-swap="innerHTML"
+            hx-indicator="#eval-spinner"
+            style="margin-left: 12px; font-size: 0.85em;">⚖ evaluate</button>
+    <span id="eval-spinner" class="htmx-indicator muted" style="font-size: 0.85em;">scoring…</span>
+</h3>
+<div id="eval-results" style="margin-bottom: 0.75rem;"></div>
+<div class="answer-card">{{ final_event.payload.answer }}</div>
+<div class="muted" style="margin-top: 4px; font-size: 0.8em;">
+    model: <code>{{ final_event.payload.model_id }}</code>
+    {% set p = final_event.payload.params %}
+    {% if p %}
+    · max_new={{ p.max_new_tokens }}
+    · temp={{ p.temperature }}
+    · top_p={{ p.top_p }}
+    · top_k={{ p.top_k }}
+    {% if p.system %}· system: <em>"{{ p.system[:80] }}{% if p.system|length > 80 %}…{% endif %}"</em>{% endif %}
+    {% endif %}
+</div>
+{% endif %}
+
+{% if s.state.value == "pending" %}
+<h3 style="margin-top: 1.5rem;">Run config</h3>
+<form id="run-form" data-sid="{{ s.id }}"
+      style="display: grid; grid-template-columns: 130px 1fr; gap: 8px 12px; max-width: 700px;">
+    <label class="muted">preset</label>
+    <div>
+        <select id="preset-select" style="padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px;">
+            <option value="">— pick a preset —</option>
+        </select>
+        <span id="preset-desc" class="muted" style="margin-left: 8px; font-size: 0.85em;"></span>
+    </div>
+    <label class="muted">system prompt</label>
+    <textarea name="system" rows="2" placeholder="(optional) preset이 자동 채움" style="font-family: inherit; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; resize: vertical;"></textarea>
+    <label class="muted">max_new_tokens</label>
+    <input type="number" name="max_new_tokens" value="256" min="1" max="4096" style="width: 120px;">
+    <label class="muted">temperature</label>
+    <input type="number" name="temperature" value="0.7" min="0.0" max="2.0" step="0.1" style="width: 120px;">
+    <label class="muted">top_p</label>
+    <input type="number" name="top_p" value="0.9" min="0.0" max="1.0" step="0.05" style="width: 120px;">
+    <label class="muted">top_k</label>
+    <input type="number" name="top_k" value="50" min="0" max="500" style="width: 120px;">
+    <label class="muted" title="0 disables retrieval. >0 retrieves top-k chunks from /web/docs and prepends as context.">retrieval_k</label>
+    <input type="number" name="retrieval_k" value="0" min="0" max="20" style="width: 120px;">
+    <span></span>
+    <div>
+        <button type="submit" id="generate-btn">▶ generate (streaming)</button>
+        <button type="button" id="agentic-btn" hx-post="/web/sessions/{{ s.id }}/run/agentic"
+                hx-include="[name='retrieval_k']" hx-target="closest main" hx-swap="none"
+                hx-on::after-request="window.location.reload()"
+                style="margin-left: 4px;" title="LangGraph 4-node: planner → retriever → reasoner → reporter">
+            🤖 agentic (LangGraph)
+        </button>
+        <span id="stream-status" class="muted" style="margin-left: 8px;"></span>
+    </div>
+</form>
+
+<div id="stream-output-wrap" style="margin-top: 1rem; display: none;">
+    <h3>Streaming output</h3>
+    <div id="stream-output" class="answer-card" style="min-height: 4em;"></div>
+    <div class="muted" id="stream-meta" style="margin-top: 4px; font-size: 0.8em;"></div>
+</div>
+
+<script>
+(async function() {
+    // populate preset dropdown
+    const sel = document.getElementById('preset-select');
+    const desc = document.getElementById('preset-desc');
+    if (sel) {
+        try {
+            const presets = await fetch('/api/v1/presets').then(r => r.json());
+            for (const p of presets) {
+                const opt = document.createElement('option');
+                opt.value = p.name;
+                opt.textContent = p.label;
+                opt.dataset.preset = JSON.stringify(p);
+                sel.appendChild(opt);
+            }
+            sel.addEventListener('change', () => {
+                const opt = sel.options[sel.selectedIndex];
+                if (!opt.dataset.preset) { desc.textContent = ''; return; }
+                const p = JSON.parse(opt.dataset.preset);
+                desc.textContent = p.description;
+                document.querySelector('textarea[name=system]').value = p.system || '';
+                document.querySelector('input[name=temperature]').value = p.temperature;
+                document.querySelector('input[name=top_p]').value = p.top_p;
+                document.querySelector('input[name=top_k]').value = p.top_k;
+                document.querySelector('input[name=max_new_tokens]').value = p.max_new_tokens;
+                document.querySelector('input[name=retrieval_k]').value = p.retrieval_k;
+            });
+        } catch (e) {
+            desc.textContent = '(preset 로드 실패: ' + e.message + ')';
+        }
+    }
+})();
+
+(function() {
+    const form = document.getElementById('run-form');
+    if (!form) return;
+    const sid = form.dataset.sid;
+    const out = document.getElementById('stream-output');
+    const wrap = document.getElementById('stream-output-wrap');
+    const status = document.getElementById('stream-status');
+    const meta = document.getElementById('stream-meta');
+    const btn = document.getElementById('generate-btn');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        btn.disabled = true;
+        status.textContent = 'connecting…';
+        wrap.style.display = '';
+        out.textContent = '';
+        meta.textContent = '';
+
+        const data = new FormData(form);
+        const t0 = performance.now();
+        let firstTokenAt = null;
+
+        try {
+            const resp = await fetch(`/web/sessions/${sid}/run/stream`, {
+                method: 'POST',
+                body: data,
+            });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+            const reader = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            status.textContent = 'streaming…';
+
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, {stream: true});
+                let idx;
+                while ((idx = buffer.indexOf('\n\n')) !== -1) {
+                    const line = buffer.slice(0, idx).trim();
+                    buffer = buffer.slice(idx + 2);
+                    if (!line.startsWith('data:')) continue;
+                    const ev = JSON.parse(line.slice(5).trim());
+                    if (ev.type === 'chunk') {
+                        if (firstTokenAt === null) {
+                            firstTokenAt = performance.now() - t0;
+                            status.textContent = `first token ${firstTokenAt.toFixed(0)}ms`;
+                        }
+                        out.textContent += ev.text;
+                    } else if (ev.type === 'done') {
+                        meta.textContent = `tokens ${ev.tokens_in}/${ev.tokens_out} · latency ${ev.latency_ms}ms · first ${firstTokenAt ? firstTokenAt.toFixed(0) : '?'}ms`;
+                        status.textContent = '✓ done';
+                        setTimeout(() => window.location.reload(), 800);
+                    } else if (ev.type === 'error') {
+                        status.textContent = '✗ error: ' + (ev.error || '');
+                    }
+                }
+            }
+        } catch (err) {
+            status.textContent = '✗ ' + err.message;
+        } finally {
+            btn.disabled = false;
+        }
+    });
+})();
+</script>
+{% endif %}
+
+<h3 style="margin-top: 1.5rem;">Events <span class="muted" style="font-size: 0.7em;">(auto-refresh 2s)</span></h3>
+<div hx-get="/web/sessions/{{ s.id }}/events"
+     hx-trigger="load, every 2s"
+     hx-swap="innerHTML">
+    {% include "events/_list.html" %}
+</div>
+{% endblock %}

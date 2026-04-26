@@ -1,0 +1,15 @@
+<div class="row" id="doc-{{ d.id }}" style="grid-template-columns: 110px 1fr 130px 100px 80px;">
+    <div><a href="/web/docs/{{ d.id }}"><code>{{ d.id[:8] }}</code></a></div>
+    <div>{{ d.title }}</div>
+    <div class="muted"><code>{{ d.source }}</code></div>
+    <div class="muted">{{ d.created_at.strftime("%m-%d %H:%M") }}</div>
+    <div>
+        <form class="inline"
+              hx-delete="/web/docs/{{ d.id }}"
+              hx-target="#doc-{{ d.id }}"
+              hx-swap="outerHTML"
+              hx-confirm="Delete this document and its chunks?">
+            <button class="danger">delete</button>
+        </form>
+    </div>
+</div>

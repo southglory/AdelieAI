@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block main %}
+<a href="/web/docs">← back</a>
+<h2>Document <code>{{ d.id[:8] }}</code></h2>
+<dl>
+    <dt>id</dt><dd><code>{{ d.id }}</code></dd>
+    <dt>title</dt><dd>{{ d.title }}</dd>
+    <dt>source</dt><dd><code>{{ d.source }}</code></dd>
+    <dt>created</dt><dd class="muted">{{ d.created_at.isoformat() }}</dd>
+    <dt>chunks</dt><dd>{{ chunks|length }}</dd>
+</dl>
+
+<h3 style="margin-top: 1.5rem;">Content</h3>
+<div class="answer-card" style="max-height: 250px; overflow-y: auto;">{{ d.content }}</div>
+
+<h3 style="margin-top: 1.5rem;">Chunks</h3>
+{% if chunks %}
+<table class="events" style="font-size: 0.9em;">
+    <tr><th style="width: 50px;">#</th><th>text</th></tr>
+    {% for c in chunks %}
+    <tr>
+        <td class="muted">{{ c.position }}</td>
+        <td><pre style="margin: 0; white-space: pre-wrap;">{{ c.text }}</pre></td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p class="muted">No chunks (empty content).</p>
+{% endif %}
+{% endblock %}

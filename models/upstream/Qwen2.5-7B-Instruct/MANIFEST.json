@@ -1,0 +1,28 @@
+{
+  "model_id": "Qwen/Qwen2.5-7B-Instruct",
+  "source": "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct",
+  "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+  "license": "apache-2.0",
+  "license_url": "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/blob/main/LICENSE",
+  "architecture": "Qwen2ForCausalLM",
+  "params_million": 7616,
+  "downloaded_at": "2026-04-25T16:37:00Z",
+  "downloaded_by": "huggingface_hub.snapshot_download",
+  "files": [
+    "model-00001-of-00004.safetensors",
+    "model-00002-of-00004.safetensors",
+    "model-00003-of-00004.safetensors",
+    "model-00004-of-00004.safetensors",
+    "model.safetensors.index.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "merges.txt",
+    "vocab.json",
+    "config.json",
+    "generation_config.json"
+  ],
+  "size_bytes": 15231271488,
+  "update_policy": "track-upstream",
+  "update_command": "python -m huggingface_hub snapshot_download Qwen/Qwen2.5-7B-Instruct --local-dir models/upstream/Qwen2.5-7B-Instruct --revision main",
+  "note": "Pristine upstream copy. Apache 2.0 — commercially redistributable. Default A-track LLM."
+}
