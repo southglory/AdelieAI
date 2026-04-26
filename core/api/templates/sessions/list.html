@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block main %}
+<h2>Agent Sessions <span class="muted">({{ user_id }})</span></h2>
+
+<form class="create-form"
+      hx-post="/web/sessions"
+      hx-target="#session-list"
+      hx-swap="afterbegin"
+      hx-on::after-request="this.reset()">
+    <label>Goal<input type="text" name="goal" placeholder="e.g. summarize Q3 finance risks" required></label>
+    <label>Model<input type="text" name="model_spec" value="{{ request.app.state.llm.model_id }}"></label>
+    <button type="submit">＋ Create</button>
+</form>
+
+<div class="row head">
+    <div>ID</div>
+    <div>Goal</div>
+    <div>State</div>
+    <div>Updated</div>
+    <div>Actions</div>
+</div>
+<div id="session-list">
+    {% for s in sessions %}{% include "sessions/_row.html" %}{% endfor %}
+</div>
+
+{% if not sessions %}
+<p class="muted" style="margin-top: 1rem;">No sessions yet — create one above.</p>
+{% endif %}
+{% endblock %}

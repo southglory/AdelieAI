@@ -1,0 +1,16 @@
+{% if events %}
+<table class="events">
+    <tr><th>time</th><th>type</th><th>from → to</th><th>tokens (in/out)</th><th>latency</th></tr>
+    {% for e in events %}
+    <tr>
+        <td class="muted">{{ e.occurred_at.strftime("%H:%M:%S") }}</td>
+        <td>{{ e.event_type.value }}</td>
+        <td>{% if e.from_state %}{{ e.from_state.value }} → {{ e.to_state.value }}{% endif %}</td>
+        <td class="muted">{{ e.tokens_in }} / {{ e.tokens_out }}</td>
+        <td class="muted">{{ e.latency_ms }}ms</td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p class="muted">No events yet.</p>
+{% endif %}

@@ -1,0 +1,23 @@
+{
+  "model_id": "BAAI/bge-reranker-v2-m3",
+  "source": "https://huggingface.co/BAAI/bge-reranker-v2-m3",
+  "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e",
+  "license": "apache-2.0",
+  "license_url": "https://huggingface.co/BAAI/bge-reranker-v2-m3",
+  "architecture": "XLMRoberta CrossEncoder",
+  "params_million": 568,
+  "max_seq_length": 8192,
+  "downloaded_at": "2026-04-25T17:54:00Z",
+  "downloaded_by": "huggingface_hub.snapshot_download",
+  "files": [
+    "model.safetensors",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+    "config.json"
+  ],
+  "size_bytes": 2288183000,
+  "update_policy": "track-upstream",
+  "update_command": "python -m huggingface_hub snapshot_download BAAI/bge-reranker-v2-m3 --local-dir models/upstream/bge-reranker-v2-m3 --revision main",
+  "note": "Multilingual cross-encoder reranker (100+ langs, KO/EN strong). Final stage of hybrid RAG. Apache 2.0 — commercial OK."
+}

@@ -1,0 +1,18 @@
+<div class="muted" style="font-size: 0.85em; margin-bottom: 4px;">
+    method: <code>{{ ctx.method }}</code> · query: <em>"{{ ctx.query }}"</em> · {{ ctx.results|length }} hit(s)
+</div>
+{% if ctx.results %}
+<table class="events">
+    <tr><th style="width: 50px;">rank</th><th style="width: 80px;">score</th><th style="width: 110px;">doc</th><th>chunk</th></tr>
+    {% for r in ctx.results %}
+    <tr>
+        <td>{{ loop.index }}</td>
+        <td class="muted">{{ "%.3f"|format(r.score) }}</td>
+        <td><a href="/web/docs/{{ r.chunk.doc_id }}"><code>{{ r.chunk.doc_id[:8] }}</code></a><br><span class="muted" style="font-size: 0.8em;">#{{ r.chunk.position }}</span></td>
+        <td><pre style="margin: 0; white-space: pre-wrap; font-size: 0.85em;">{{ r.chunk.text[:300] }}{% if r.chunk.text|length > 300 %}…{% endif %}</pre></td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p class="muted">No matches.</p>
+{% endif %}

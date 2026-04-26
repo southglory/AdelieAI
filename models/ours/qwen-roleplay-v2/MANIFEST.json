@@ -1,0 +1,15 @@
+{
+  "model_id": "qwen-roleplay-v2",
+  "base_model": "models\\upstream\\Qwen2.5-7B-Instruct",
+  "kind": "lora-adapter",
+  "license": "apache-2.0",
+  "trainable_params": 40370176,
+  "total_params": 7655986688,
+  "num_epochs": 4,
+  "n_pairs": 120,
+  "elapsed_seconds": 121.3,
+  "final_loss": 0.9497711002826691,
+  "produced_by": "differentia-llm core.training.trainer.train_lora",
+  "update_policy": "diverged",
+  "note": "우리가 만든 adapter. base 모델 weights는 변경 없음."
+}

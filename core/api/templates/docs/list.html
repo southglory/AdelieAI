@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block main %}
+<h2>Documents</h2>
+<p class="muted">RAG 베이스. 텍스트 ingest → chunker로 분할 → embedder가 벡터 → ChromaDB 저장 → 검색 가능.</p>
+
+<details style="margin: 1rem 0; padding: 0.75rem; background: #f8f9fa; border-radius: 6px;">
+    <summary style="cursor: pointer; font-weight: 600;">＋ Ingest new document</summary>
+    <form hx-post="/web/docs"
+          hx-target="#doc-list"
+          hx-swap="afterbegin"
+          hx-on::after-request="this.reset()"
+          style="display: grid; grid-template-columns: 100px 1fr; gap: 8px 12px; margin-top: 0.75rem;">
+        <label class="muted">title</label>
+        <input type="text" name="title" required style="padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px;">
+        <label class="muted">source</label>
+        <input type="text" name="source" value="manual" style="padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px;">
+        <label class="muted">content</label>
+        <textarea name="content" rows="6" required style="padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit;"></textarea>
+        <span></span>
+        <button type="submit" style="justify-self: start;">＋ Ingest</button>
+    </form>
+</details>
+
+<details style="margin: 1rem 0; padding: 0.75rem; background: #f8f9fa; border-radius: 6px;">
+    <summary style="cursor: pointer; font-weight: 600;">🔍 Search retriever</summary>
+    <form hx-post="/web/docs/search"
+          hx-target="#search-results"
+          hx-swap="innerHTML"
+          style="margin-top: 0.75rem;">
+        <input type="text" name="query" placeholder="query" required style="width: 60%; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px;">
+        <input type="number" name="k" value="5" min="1" max="50" style="width: 60px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 4px;">
+        <button type="submit">search</button>
+    </form>
+    <div id="search-results" style="margin-top: 0.75rem;"></div>
+</details>
+
+<div class="row head" style="grid-template-columns: 110px 1fr 130px 100px 80px;">
+    <div>ID</div>
+    <div>Title</div>
+    <div>Source</div>
+    <div>Created</div>
+    <div></div>
+</div>
+<div id="doc-list">
+    {% for d in docs %}
+        {% include "docs/_row.html" %}
+    {% endfor %}
+</div>
+
+{% if not docs %}
+<p class="muted" style="margin-top: 1rem;">No documents yet — ingest one above.</p>
+{% endif %}
+{% endblock %}

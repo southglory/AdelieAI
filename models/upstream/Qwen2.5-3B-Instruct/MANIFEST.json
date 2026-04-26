@@ -1,0 +1,27 @@
+{
+  "model_id": "Qwen/Qwen2.5-3B-Instruct",
+  "source": "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct",
+  "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+  "license": "qwen-research",
+  "license_url": "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/blob/main/LICENSE",
+  "license_caveat": "NOT Apache 2.0 — Qwen Research License. Personal/research use OK. Commercial use requires separate agreement with Alibaba. Prefer 0.5B/7B/14B/32B/72B (all Apache 2.0) for commercially redistributable artifacts.",
+  "architecture": "Qwen2ForCausalLM",
+  "params_million": 3086,
+  "downloaded_at": "2026-04-25T16:33:00Z",
+  "downloaded_by": "huggingface_hub.snapshot_download",
+  "files": [
+    "model-00001-of-00002.safetensors",
+    "model-00002-of-00002.safetensors",
+    "model.safetensors.index.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "merges.txt",
+    "vocab.json",
+    "config.json",
+    "generation_config.json"
+  ],
+  "size_bytes": 6171890000,
+  "update_policy": "track-upstream",
+  "update_command": "python -m huggingface_hub snapshot_download Qwen/Qwen2.5-3B-Instruct --local-dir models/upstream/Qwen2.5-3B-Instruct --revision main",
+  "note": "Pristine upstream copy. Personal/dev use only due to license. For commercial swap to 7B."
+}

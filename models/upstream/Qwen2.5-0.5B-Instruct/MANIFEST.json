@@ -1,0 +1,23 @@
+{
+  "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+  "source": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct",
+  "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+  "license": "apache-2.0",
+  "architecture": "Qwen2ForCausalLM",
+  "params_million": 494,
+  "downloaded_at": "2026-04-25T16:15:00Z",
+  "downloaded_by": "huggingface_hub.snapshot_download",
+  "files": [
+    "model.safetensors",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "merges.txt",
+    "vocab.json",
+    "config.json",
+    "generation_config.json"
+  ],
+  "size_bytes": 988097824,
+  "update_policy": "track-upstream",
+  "update_command": "python -m huggingface_hub snapshot_download Qwen/Qwen2.5-0.5B-Instruct --local-dir models/upstream/Qwen2.5-0.5B-Instruct --revision main",
+  "note": "Pristine upstream copy. Do not modify in place; create derivatives in models/ours/."
+}
