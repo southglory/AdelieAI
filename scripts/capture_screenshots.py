@@ -26,6 +26,13 @@ def shot(page: Page, out: Path, name: str) -> None:
     print(f"  saved {name}.png")
 
 
+def _send_message(page: Page, message: str) -> None:
+    page.locator("input[name='message']").fill(message)
+    page.locator(".chat-input button[type='submit']").click()
+    page.wait_for_load_state("networkidle", timeout=30_000)
+    time.sleep(0.3)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="http://localhost:8770")
@@ -41,15 +48,34 @@ def main() -> None:
         context = browser.new_context(viewport={"width": 1280, "height": 900})
         page = context.new_page()
 
-        # Set the user identity once (no separate "before" capture
-        # — the empty-sessions and user-changed views look identical).
-        page.goto(f"{args.url}/web/sessions")
+        # Set user identity once via the navbar form on /web/personas
+        page.goto(f"{args.url}/web/personas")
         page.locator("input[name='user_id']").fill(args.user)
         page.locator("nav form button[type='submit']").click()
-        page.wait_for_url(f"{args.url}/web/sessions")
+        page.wait_for_load_state("networkidle")
         time.sleep(0.3)
 
-        # 01 — sessions list with three KO role-play sessions
+        # 01 — personas gallery: the new hero shot
+        page.goto(f"{args.url}/web/personas")
+        time.sleep(0.4)
+        shot(page, out, "01_personas")
+
+        # 02 — chat thread: open the first persona, send a couple of
+        # messages, then re-navigate so the sidebar turn count and
+        # any cached empty-state markup reflect the fresh history.
+        page.locator(".persona-card").first.click()
+        page.wait_for_load_state("networkidle")
+        time.sleep(0.4)
+        _send_message(page, "안녕? 오늘 뭐 했어?")
+        _send_message(page, "친구는 누구야?")
+        page.goto(f"{args.url}/web/chat/penguin_relaxed")
+        page.wait_for_load_state("networkidle")
+        time.sleep(0.4)
+        shot(page, out, "02_chat_thread")
+
+        # 03 — sessions list (the agentic-RAG / advanced track)
+        page.goto(f"{args.url}/web/sessions")
+        time.sleep(0.3)
         for goal in [
             "놀고있는 펭귄으로서 지금 할 말을 해줘",
             "헤엄치는 물고기가 상어를 만났을 때 할 말을 해줘",
@@ -57,28 +83,12 @@ def main() -> None:
         ]:
             page.locator("input[name='goal']").fill(goal)
             page.locator(".create-form button[type='submit']").click()
-            time.sleep(0.5)
-        shot(page, out, "01_sessions")
+            time.sleep(0.4)
+        shot(page, out, "03_sessions")
 
-        # 02 — open the first session, run-config form pre-filled with
-        # custom sampling values for the screenshot.
-        page.locator("#session-list a").first.click()
-        time.sleep(0.4)
-        page.locator("input[name='retrieval_k']").fill("3")
-        page.locator("input[name='temperature']").fill("0.85")
-        time.sleep(0.2)
-        shot(page, out, "02_run_config")
-
-        # 03 — after generate (stub LLM completes instantly so no
-        # mid-flight streaming frame to capture).
-        page.locator("#generate-btn").click()
-        page.wait_for_load_state("networkidle", timeout=30_000)
-        time.sleep(0.6)
-        shot(page, out, "03_answer")
-
-        # 04 — graceful 503 page when no embedder is loaded
+        # 04 — graceful 503 when no embedder is loaded
         page.goto(f"{args.url}/web/docs")
-        time.sleep(0.4)
+        time.sleep(0.3)
         shot(page, out, "04_docs_unavailable")
 
         # 05 — /health JSON

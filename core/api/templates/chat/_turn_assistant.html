@@ -1,0 +1,9 @@
+<div class="turn assistant">
+    <div class="role">
+        <span>{{ persona.emoji }} {{ persona.display_name }}</span>
+        {% if t.latency_ms is not none and t.tokens_out is not none %}
+        <span class="stat">{{ "%.1f"|format(t.latency_ms / 1000) }}s · {{ t.tokens_out }} tok</span>
+        {% endif %}
+    </div>
+    <div class="body">{{ t.content }}</div>
+</div>

@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="chat-header">
+    <a href="/web/personas" class="back">← personas</a>
+    <span class="who">{{ persona.emoji }} {{ persona.display_name }}</span>
+    <span class="muted" style="font-size: 0.85em;">
+        {{ persona.base_model_hint.split('/')[-1] }}{% if persona.adapter_hint %} + {{ persona.adapter_hint }}{% endif %}
+    </span>
+    <span class="grow"></span>
+    <form action="/web/chat/{{ persona.persona_id }}/reset" method="post" style="display: inline;">
+        <button type="submit" class="danger" title="Clear all turns with this persona">reset</button>
+    </form>
+</div>
+
+<div class="chat-layout">
+    <div class="chat-main">
+        <div id="chat-thread" class="chat-thread">
+            {% for t in turns %}
+                {% if t.role == "user" %}{% include "chat/_turn_user.html" %}
+                {% else %}{% include "chat/_turn_assistant.html" %}{% endif %}
+            {% endfor %}
+            {% if not turns %}
+            <p class="muted empty-hint">Send a message below to start the conversation.</p>
+            {% endif %}
+        </div>
+
+        <form class="chat-input"
+              hx-post="/web/chat/{{ persona.persona_id }}/messages"
+              hx-target="#chat-thread"
+              hx-swap="beforeend"
+              hx-on::after-request="this.reset(); document.getElementById('chat-thread').scrollTop = document.getElementById('chat-thread').scrollHeight">
+            <input type="text" name="message" placeholder="type a message..." autocomplete="off" required autofocus>
+            <button type="submit">▶ send</button>
+        </form>
+    </div>
+
+    <aside class="chat-meta">
+        <h3>Persona</h3>
+        <dl>
+            <dt>id</dt><dd><code>{{ persona.persona_id }}</code></dd>
+            <dt>base</dt><dd><code>{{ persona.base_model_hint.split('/')[-1] }}</code></dd>
+            {% if persona.adapter_hint %}<dt>adapter</dt><dd><code>{{ persona.adapter_hint }}</code></dd>{% endif %}
+            <dt>RAG</dt><dd>{{ "on" if persona.rag_enabled else "off" }}</dd>
+            <dt>turns</dt><dd>{{ turns|length }}</dd>
+        </dl>
+        <h3 style="margin-top: 1rem;">System prompt</h3>
+        <pre class="system-prompt">{{ persona.system_prompt }}</pre>
+    </aside>
+</div>
+
+<style>
+.chat-header {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    padding: 0.6rem 0.4rem;
+    border-bottom: 1px solid var(--bd);
+    margin-bottom: 0.8rem;
+}
+.chat-header .who { font-weight: 600; font-size: 1.1em; }
+.chat-header .back { color: #0d6efd; text-decoration: none; }
+.chat-header .back:hover { text-decoration: underline; }
+.chat-header .grow { flex: 1; }
+.chat-header button.danger { color: #b02a37; }
+
+.chat-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 1rem;
+    min-height: 60vh;
+}
+@media (max-width: 900px) {
+    .chat-layout { grid-template-columns: 1fr; }
+    .chat-meta { order: -1; }
+}
+.chat-main { display: flex; flex-direction: column; min-height: 60vh; }
+.chat-thread {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.6rem 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-height: 70vh;
+}
+.empty-hint { text-align: center; padding: 2rem 0; }
+.chat-thread:has(.turn) .empty-hint { display: none; }
+
+.turn {
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    line-height: 1.5;
+}
+.turn.user {
+    background: #e7f0ff;
+    border: 1px solid #c7d9f5;
+    align-self: flex-end;
+    max-width: 80%;
+}
+.turn.assistant {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    align-self: flex-start;
+    max-width: 90%;
+}
+.turn .role {
+    font-size: 0.78em;
+    color: var(--muted);
+    margin-bottom: 0.25rem;
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+}
+.turn .role .stat {
+    font-family: ui-monospace, monospace;
+    color: #555;
+}
+.turn .body { white-space: pre-wrap; }
+
+.chat-input {
+    display: flex;
+    gap: 0.4rem;
+    padding: 0.6rem 0.4rem;
+    border-top: 1px solid var(--bd);
+}
+.chat-input input[type=text] {
+    flex: 1;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.95em;
+}
+.chat-input button {
+    padding: 0.5rem 1rem;
+    background: #0d6efd;
+    color: white;
+    border: 1px solid #0d6efd;
+}
+.chat-input button:hover { background: #0b5ed7; }
+
+.chat-meta {
+    border: 1px solid var(--bd);
+    border-radius: 8px;
+    padding: 1rem;
+    background: #fafafa;
+    align-self: start;
+    font-size: 0.9em;
+}
+.chat-meta h3 { margin: 0 0 0.4rem; font-size: 0.9em; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+.chat-meta dl { display: grid; grid-template-columns: 70px 1fr; gap: 4px 10px; }
+.chat-meta dt { color: var(--muted); }
+.chat-meta dd { margin: 0; font-family: ui-monospace, monospace; font-size: 0.85em; word-break: break-all; }
+.chat-meta .system-prompt {
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-size: 0.78em;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    margin: 0;
+}
+</style>
+{% endblock %}

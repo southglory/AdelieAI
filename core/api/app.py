@@ -12,9 +12,11 @@ from core.api.docs_web import build_docs_web_router
 from core.api.eval import build_eval_router
 from core.api.eval_web import build_eval_web_router
 from core.api.middleware import RequestContextMiddleware
+from core.api.personas_web import build_personas_web_router
 from core.api.presets import build_presets_router
 from core.api.web import build_web_router
 from core.logging import configure_logging, get_logger
+from core.personas.store import ChatStore, SqlChatStore
 from core.retrieval.bm25 import InMemoryBM25
 from core.retrieval.chunker import RecursiveTextSplitter
 from core.retrieval.document_store import SqlDocumentStore
@@ -84,6 +86,15 @@ def _default_doc_store() -> SqlDocumentStore:
     return SqlDocumentStore.from_url(url)
 
 
+def _default_chat_store() -> SqlChatStore:
+    url = os.environ.get("CHAT_DATABASE_URL")
+    if url is None:
+        data_dir = Path("data")
+        data_dir.mkdir(exist_ok=True)
+        url = f"sqlite+aiosqlite:///{data_dir.absolute().as_posix()}/chats.db"
+    return SqlChatStore.from_url(url)
+
+
 def _default_embedder() -> Embedder | None:
     path = os.environ.get(
         "EMBEDDING_MODEL_PATH", "models/upstream/multilingual-e5-small"
@@ -136,9 +147,13 @@ def build_app(
     llm: LLMClient | None = None,
     ingest: IngestService | None = None,
     retriever=None,
+    chat_store: ChatStore | None = None,
 ) -> FastAPI:
     resolved_store = store if store is not None else _default_store()
     resolved_llm = llm if llm is not None else _default_llm()
+    resolved_chat_store: ChatStore = (
+        chat_store if chat_store is not None else _default_chat_store()
+    )
 
     bm25_to_warm: InMemoryBM25 | None = None
 
@@ -168,6 +183,8 @@ def build_app(
     async def lifespan(app: FastAPI):
         if isinstance(resolved_store, SqlSessionStore):
             await resolved_store.init_schema()
+        if isinstance(resolved_chat_store, SqlChatStore):
+            await resolved_chat_store.init_schema()
         if ingest is not None and isinstance(ingest.doc_store, SqlDocumentStore):
             await ingest.doc_store.init_schema()
         if ingest is not None and bm25_to_warm is not None:
@@ -175,6 +192,8 @@ def build_app(
         yield
         if isinstance(resolved_store, SqlSessionStore):
             await resolved_store.dispose()
+        if isinstance(resolved_chat_store, SqlChatStore):
+            await resolved_chat_store.dispose()
         if ingest is not None and isinstance(ingest.doc_store, SqlDocumentStore):
             await ingest.doc_store.dispose()
 
@@ -194,11 +213,15 @@ def build_app(
     app.state.llm = resolved_llm
     app.state.ingest = ingest
     app.state.retriever = retriever
+    app.state.chat_store = resolved_chat_store
     app.include_router(
         build_router(app.state.store, app.state.llm, retriever=retriever)
     )
     app.include_router(
         build_web_router(app.state.store, app.state.llm, retriever=retriever)
+    )
+    app.include_router(
+        build_personas_web_router(resolved_chat_store, app.state.llm)
     )
     app.include_router(build_docs_router(ingest, retriever))
     app.include_router(build_docs_web_router(ingest, retriever))
@@ -231,11 +254,15 @@ def build_app(
     @app.get("/")
     async def root() -> dict[str, object]:
         return {
-            "name": "differentia-llm core",
+            "name": "AdelieAI",
             "version": __version__,
-            "modules": ["schemas", "session", "agent", "serving", "retrieval", "api"],
+            "modules": [
+                "schemas", "session", "agent", "serving",
+                "retrieval", "personas", "api",
+            ],
             "llm": app.state.llm.model_id,
             "store": type(app.state.store).__name__,
+            "chat_store": type(app.state.chat_store).__name__,
             "retrieval": "ready" if ingest is not None else "unavailable",
         }
 
