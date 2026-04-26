@@ -1,0 +1,202 @@
+"""Chat-turn persistence — one row per user/assistant message in a
+persona conversation, plus per-turn telemetry (tokens + latency).
+
+Two implementations:
+- ``InMemoryChatStore``: tests, ephemeral demos.
+- ``SqlChatStore``: SQLite by default, swap via DATABASE_URL.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Literal, Protocol, runtime_checkable
+
+from sqlalchemy import DateTime, Integer, String, delete, select
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+Role = Literal["user", "assistant"]
+
+
+@dataclass(frozen=True)
+class ChatTurn:
+    id: int | None
+    persona_id: str
+    user_id: str
+    role: Role
+    content: str
+    tokens_in: int | None
+    tokens_out: int | None
+    latency_ms: int | None
+    created_at: datetime
+
+
+@runtime_checkable
+class ChatStore(Protocol):
+    async def list_turns(
+        self, persona_id: str, user_id: str
+    ) -> list[ChatTurn]: ...
+
+    async def append(self, turn: ChatTurn) -> ChatTurn: ...
+
+    async def reset(self, persona_id: str, user_id: str) -> int: ...
+
+    async def turn_count(self, persona_id: str, user_id: str) -> int: ...
+
+
+class InMemoryChatStore:
+    """Process-local store. Resets when the app restarts."""
+
+    def __init__(self) -> None:
+        self._turns: list[ChatTurn] = []
+        self._next_id = 1
+
+    async def list_turns(
+        self, persona_id: str, user_id: str
+    ) -> list[ChatTurn]:
+        return [
+            t
+            for t in self._turns
+            if t.persona_id == persona_id and t.user_id == user_id
+        ]
+
+    async def append(self, turn: ChatTurn) -> ChatTurn:
+        stored = ChatTurn(
+            id=self._next_id,
+            persona_id=turn.persona_id,
+            user_id=turn.user_id,
+            role=turn.role,
+            content=turn.content,
+            tokens_in=turn.tokens_in,
+            tokens_out=turn.tokens_out,
+            latency_ms=turn.latency_ms,
+            created_at=turn.created_at,
+        )
+        self._turns.append(stored)
+        self._next_id += 1
+        return stored
+
+    async def reset(self, persona_id: str, user_id: str) -> int:
+        before = len(self._turns)
+        self._turns = [
+            t
+            for t in self._turns
+            if not (t.persona_id == persona_id and t.user_id == user_id)
+        ]
+        return before - len(self._turns)
+
+    async def turn_count(self, persona_id: str, user_id: str) -> int:
+        return len(await self.list_turns(persona_id, user_id))
+
+
+class _Base(DeclarativeBase):
+    pass
+
+
+class _ChatTurnRow(_Base):
+    __tablename__ = "chat_turns"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    persona_id: Mapped[str] = mapped_column(String(64), index=True)
+    user_id: Mapped[str] = mapped_column(String(128), index=True)
+    role: Mapped[str] = mapped_column(String(16))
+    content: Mapped[str] = mapped_column(String)
+    tokens_in: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tokens_out: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    def to_dataclass(self) -> ChatTurn:
+        return ChatTurn(
+            id=self.id,
+            persona_id=self.persona_id,
+            user_id=self.user_id,
+            role=self.role,  # type: ignore[arg-type]
+            content=self.content,
+            tokens_in=self.tokens_in,
+            tokens_out=self.tokens_out,
+            latency_ms=self.latency_ms,
+            created_at=_aware(self.created_at),
+        )
+
+
+def _aware(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+class SqlChatStore:
+    def __init__(self, engine: AsyncEngine) -> None:
+        self._engine = engine
+        self._sessionmaker = async_sessionmaker(
+            engine, expire_on_commit=False, class_=AsyncSession
+        )
+
+    @classmethod
+    def from_url(cls, url: str) -> "SqlChatStore":
+        return cls(create_async_engine(url, future=True))
+
+    async def init_schema(self) -> None:
+        async with self._engine.begin() as conn:
+            await conn.run_sync(_Base.metadata.create_all)
+
+    async def dispose(self) -> None:
+        await self._engine.dispose()
+
+    async def list_turns(
+        self, persona_id: str, user_id: str
+    ) -> list[ChatTurn]:
+        async with self._sessionmaker() as session:
+            stmt = (
+                select(_ChatTurnRow)
+                .where(
+                    _ChatTurnRow.persona_id == persona_id,
+                    _ChatTurnRow.user_id == user_id,
+                )
+                .order_by(_ChatTurnRow.id.asc())
+            )
+            rows = (await session.execute(stmt)).scalars().all()
+            return [r.to_dataclass() for r in rows]
+
+    async def append(self, turn: ChatTurn) -> ChatTurn:
+        async with self._sessionmaker() as session:
+            row = _ChatTurnRow(
+                persona_id=turn.persona_id,
+                user_id=turn.user_id,
+                role=turn.role,
+                content=turn.content,
+                tokens_in=turn.tokens_in,
+                tokens_out=turn.tokens_out,
+                latency_ms=turn.latency_ms,
+                created_at=_aware(turn.created_at),
+            )
+            session.add(row)
+            await session.commit()
+            await session.refresh(row)
+            return row.to_dataclass()
+
+    async def reset(self, persona_id: str, user_id: str) -> int:
+        async with self._sessionmaker() as session:
+            stmt = delete(_ChatTurnRow).where(
+                _ChatTurnRow.persona_id == persona_id,
+                _ChatTurnRow.user_id == user_id,
+            )
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.rowcount or 0
+
+    async def turn_count(self, persona_id: str, user_id: str) -> int:
+        async with self._sessionmaker() as session:
+            stmt = select(_ChatTurnRow.id).where(
+                _ChatTurnRow.persona_id == persona_id,
+                _ChatTurnRow.user_id == user_id,
+            )
+            rows = (await session.execute(stmt)).scalars().all()
+            return len(rows)

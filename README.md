@@ -8,7 +8,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![tests](https://img.shields.io/badge/tests-147%20passing-brightgreen.svg)](#testing)
+[![tests](https://img.shields.io/badge/tests-161%20passing-brightgreen.svg)](#testing)
 [![Persona Pack v0.1](https://img.shields.io/badge/persona%20pack-v0.1-blueviolet.svg)](docs/PERSONA_PACK.md)
 
 </div>
@@ -43,16 +43,16 @@ AdelieAI ships:
 
 ## Live console
 
-![sessions list with role-play personas](docs/screenshots/01_sessions.png)
+![persona gallery — pick a character to chat with](docs/screenshots/01_personas.png)
 
-Three Korean role-play personas (penguin / fish / knight) loaded as sessions. Top-right `llm:` shows the active model id — base alone, or `base+persona-id` when a persona pack is mounted.
+Three Korean role-play personas (penguin / fish / knight) ship out of the box. Click a card to open a chat thread; per-turn token count and latency surface inline. The screenshots below are captured against the stub LLM (no GPU required) — mount Qwen-7B + LoRA and the same UI shows real character replies.
 
 | Frame | What it shows |
 |---|---|
-| [`01_sessions.png`](docs/screenshots/01_sessions.png) | Sessions list with three loaded personas |
-| [`02_run_config.png`](docs/screenshots/02_run_config.png) | Per-session sampling controls + retrieval `k` |
-| [`03_answer.png`](docs/screenshots/03_answer.png) | Streamed answer + token strip |
-| [`04_docs_unavailable.png`](docs/screenshots/04_docs_unavailable.png) | Graceful fallback when RAG is unavailable |
+| [`01_personas.png`](docs/screenshots/01_personas.png) | Persona gallery — three default characters with base / adapter / RAG / turn-count meta |
+| [`02_chat_thread.png`](docs/screenshots/02_chat_thread.png) | Chat thread with per-turn telemetry (`{latency}s · {tokens} tok`) and persona sidebar (system prompt + adapter id) |
+| [`03_sessions.png`](docs/screenshots/03_sessions.png) | Agentic session mode — RAG-grounded one-shot runs (LangGraph planner → retriever → reasoner → reporter) |
+| [`04_docs_unavailable.png`](docs/screenshots/04_docs_unavailable.png) | Graceful fallback when no embedder is mounted |
 | [`05_health.png`](docs/screenshots/05_health.png) | `/health` JSON output |
 | [`06_swagger.png`](docs/screenshots/06_swagger.png) | Swagger UI at `/docs` |
 
@@ -80,12 +80,13 @@ Full spec: [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md). Roadmap to v0.2 adds 
 | **LLM serving** | `transformers` + LoRA adapter auto-loader, SSE token streaming, sampling presets |
 | **RAG pipeline** | Recursive splitter · multilingual-e5 (KO+EN) · ChromaDB · BM25 · RRF fusion · bge-reranker-v2-m3 cross-encoder |
 | **Agent loop** | LangGraph 4-node graph (planner → retriever → reasoner → reporter) |
-| **Sessions** | Pydantic state machine · event sourcing · SQLAlchemy (SQLite default, Postgres swap) · IDOR guard |
+| **Personas** | Built-in registry, multi-turn chat store (SQLite default), per-turn token + latency telemetry |
+| **Sessions** | Agentic-mode state machine · event sourcing · SQLAlchemy (SQLite default, Postgres swap) · IDOR guard |
 | **Evaluation** | LLM-as-judge faithfulness / relevance / citation coverage; head-to-head adapter comparison |
-| **Console UI** | HTMX + Jinja2 — single process, no JS framework |
+| **Console UI** | HTMX + Jinja2 — persona gallery, chat thread, agentic sessions; single process, no JS framework |
 | **Training** | TRL `SFTTrainer` LoRA, plus a pure-PyTorch nanoGPT for from-scratch experiments |
 | **Logging** | Structured JSON + per-request id propagation |
-| **Tests** | 147 unit + Playwright E2E walker |
+| **Tests** | 161 unit + Playwright E2E walker |
 
 ## Design principles
 
@@ -124,7 +125,7 @@ python -m venv .venv
 PYTHONUTF8=1 .venv/Scripts/uvicorn core.api.app:app --port 8770
 ```
 
-Open `http://localhost:8770/web/`.
+Open `http://localhost:8770/web/personas` — pick a character and start chatting.
 
 `/health` returns:
 ```json
@@ -139,6 +140,20 @@ Open `http://localhost:8770/web/`.
 ```
 
 When a persona pack is mounted, `llm` becomes `base+persona-id`.
+
+## Chat with a persona
+
+Three Korean role-play personas ship out of the box: **🐧 놀고 있는 펭귄**, **🐟 헤엄치는 물고기**, **⚔️ 용감한 기사**. With or without a LoRA adapter mounted, the system prompt drives the character; with `qwen-roleplay-v2` mounted, the LoRA additionally tilts the voice toward role-play register.
+
+1. Open `/web/personas` — gallery of cards with base / adapter / RAG status / turn count.
+2. Click a card → `/web/chat/{persona_id}` — chat thread with the character.
+3. Send a message → reply streams back inline, with `{latency}s · {tokens} tok` mini-stat next to each turn.
+4. Sidebar shows persona meta: model id, system prompt, turn count, adapter id.
+5. Hit `reset` to clear the thread for that user/persona pair only.
+
+Persistence: every turn is stored in `data/chats.db` (SQLite by default; swap via `CHAT_DATABASE_URL`).
+
+The persona registry is hard-coded for v0.1.5; v0.2 swaps it for `.adelie` pack auto-discovery — see [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md).
 
 ## Train a persona
 
@@ -186,7 +201,8 @@ A 69M model trains end-to-end in ~5 minutes on an RTX 3090.
 
 | version | adds |
 |---|---|
-| **v0.1** (current) | Persona pack format spec, LoRA training, hybrid RAG, LangGraph agent, comparison harness |
+| v0.1 | Persona pack format spec, LoRA training, hybrid RAG, LangGraph agent, comparison harness |
+| **v0.1.5** (current) | **Persona gallery + multi-turn chat UI with per-turn telemetry** (token count + latency) |
 | **v0.2** | AWQ + GGUF quantization track — same persona, 1/4 the deployable size |
 | **v0.3** | Distillation track (7B teacher → 1.5B student) — mobile-class personas |
 | **v0.4** | vLLM serving — multiple personas concurrent on one GPU |
@@ -196,7 +212,7 @@ A 69M model trains end-to-end in ~5 minutes on an RTX 3090.
 ## Testing
 
 ```bash
-# 147 unit tests
+# 161 unit tests
 .venv/Scripts/python -m pytest tests -q
 
 # End-to-end Playwright walk

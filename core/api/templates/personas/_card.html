@@ -1,0 +1,11 @@
+<a class="persona-card" href="/web/chat/{{ p.persona_id }}">
+    <div class="emoji">{{ p.emoji }}</div>
+    <div class="name">{{ p.display_name }}</div>
+    <div class="desc">{{ p.description }}</div>
+    <dl class="meta">
+        <dt>base</dt><dd>{{ p.base_model_hint.split('/')[-1] }}</dd>
+        {% if p.adapter_hint %}<dt>adapter</dt><dd>{{ p.adapter_hint }}</dd>{% endif %}
+        <dt>RAG</dt><dd>{{ "on" if p.rag_enabled else "off" }}</dd>
+        <dt>turns</dt><dd>{{ counts[p.persona_id] }}</dd>
+    </dl>
+</a>

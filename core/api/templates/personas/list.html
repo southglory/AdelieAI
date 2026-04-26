@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block main %}
+<h2>Personas <span class="muted">({{ user_id }})</span></h2>
+<p class="muted" style="margin-top: -0.4rem;">
+    Pick a character. Each one stays in voice across the whole conversation; per-turn token use and latency surface inline.
+</p>
+
+<div class="persona-grid">
+    {% for p in personas %}{% include "personas/_card.html" %}{% endfor %}
+</div>
+
+<style>
+.persona-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+.persona-card {
+    border: 1px solid var(--bd);
+    border-radius: 8px;
+    padding: 1rem;
+    text-decoration: none;
+    color: #222;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    transition: border-color 120ms, transform 120ms;
+}
+.persona-card:hover {
+    border-color: #0d6efd;
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+.persona-card .emoji {
+    font-size: 2.2rem;
+    line-height: 1;
+}
+.persona-card .name {
+    font-weight: 600;
+    font-size: 1.05em;
+}
+.persona-card .desc {
+    color: var(--muted);
+    font-size: 0.85em;
+    line-height: 1.4;
+}
+.persona-card dl.meta {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 2px 8px;
+    font-size: 0.78em;
+    color: #555;
+    margin: 0.4rem 0 0;
+}
+.persona-card dl.meta dt { color: var(--muted); }
+.persona-card dl.meta dd { margin: 0; font-family: ui-monospace, monospace; }
+</style>
+{% endblock %}
