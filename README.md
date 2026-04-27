@@ -45,7 +45,7 @@ AdelieAI ships:
 
 ![persona gallery — pick a character to chat with](docs/screenshots/01_personas.png)
 
-Three Korean role-play personas (penguin / fish / knight) ship out of the box. Click a card to open a chat thread; per-turn token count and latency surface inline. The screenshots below are captured against the stub LLM (no GPU required) — mount Qwen-7B + LoRA and the same UI shows real character replies.
+Three Korean role-play personas (penguin / fish / knight) ship out of the box. Click a card to open a chat thread; per-turn token count and latency surface inline. Screenshots above are captured against `Qwen2.5-7B-Instruct + qwen-roleplay-v2` on a single RTX 3090 — note the live `llm:` indicator in the top nav and the in-character Korean replies.
 
 | Frame | What it shows |
 |---|---|
