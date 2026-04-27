@@ -27,10 +27,19 @@ def shot(page: Page, out: Path, name: str) -> None:
 
 
 def _send_message(page: Page, message: str) -> None:
+    """Send a chat message and wait for the response to actually land.
+
+    HTMX XHRs can finish after `networkidle` reports clean (especially
+    when a real LLM takes seconds to generate), so we explicitly wait
+    on the /messages POST response.
+    """
     page.locator("input[name='message']").fill(message)
-    page.locator(".chat-input button[type='submit']").click()
-    page.wait_for_load_state("networkidle", timeout=30_000)
-    time.sleep(0.3)
+    with page.expect_response(
+        lambda r: "/messages" in r.url and r.request.method == "POST",
+        timeout=120_000,
+    ):
+        page.locator(".chat-input button[type='submit']").click()
+    time.sleep(0.5)  # let HTMX swap the response into the DOM
 
 
 def main() -> None:
@@ -55,8 +64,17 @@ def main() -> None:
         page.wait_for_load_state("networkidle")
         time.sleep(0.3)
 
+        # Reset every default persona so the gallery and chat shots
+        # do not carry leftover turns from prior runs.
+        for pid in ("penguin_relaxed", "fish_swimmer", "knight_brave"):
+            page.goto(f"{args.url}/web/chat/{pid}")
+            page.wait_for_load_state("networkidle")
+            page.locator(".chat-header form button[type='submit']").click()
+            page.wait_for_load_state("networkidle")
+
         # 01 — personas gallery: the new hero shot
         page.goto(f"{args.url}/web/personas")
+        page.wait_for_load_state("networkidle")
         time.sleep(0.4)
         shot(page, out, "01_personas")
 
