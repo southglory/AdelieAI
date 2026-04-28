@@ -58,7 +58,7 @@ Three industry verticals showcase the tier ladder out of the box. Same engine, t
   </tr>
 </table>
 
-`/health` introspects which tier the running build supports. Full framework + decision tree: [`docs/CAPABILITY_TIERS.md`](docs/CAPABILITY_TIERS.md).
+`/health` introspects which tier the running build supports. Full framework + decision tree: [`docs/CAPABILITY_TIERS.md`](docs/CAPABILITY_TIERS.md). Repo organization (7 영역 모듈식 설계): [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Per-area docs (personas / retrieval / tools / agents / training / serving / evaluation): see [`docs/`](docs/).
 
 Don't have weights downloaded? `StubLLMClient` ships persona-aware canned voice — visiting the demos still shows in-character replies (penguin / fish / knight / merchant / detective each have a small canned set), so OSS visitors get the *shape* without GPU.
 
