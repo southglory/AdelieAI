@@ -63,13 +63,25 @@ def test_gaming_demo_has_jrpg_chrome(client: TestClient) -> None:
         assert item in body, f"missing inventory item: {item}"
 
 
-def test_legal_demo_uses_placeholder(client: TestClient) -> None:
-    """legal still on the placeholder pending Step 3 design pass."""
+def test_legal_demo_has_noir_chrome(client: TestClient) -> None:
+    """legal vertical was custom-designed in Step 3 — verify the
+    distinctive noir detective-office chrome survives."""
     r = client.get("/demo/legal")
-    assert "demo-placeholder" in r.text
+    body = r.text
+    assert "CASE FILE #07" in body  # case stamp header
+    assert "office-stage" in body  # full-bleed scene container
+    assert "case-board" in body  # cork board panel
+    assert "transcript" in body  # interrogation paper
+    assert "/web/chat/cold_detective/messages" in body  # backend wire
+    assert "Special+Elite" in body  # typewriter font import
+    # Static evidence chips render — T3 retrieval-as-tool surface
+    for evidence in ("evidence_1.md", "case_log_07.md", "timeline.txt", "witness_a.md"):
+        assert evidence in body, f"missing evidence file: {evidence}"
+    assert "tier T3" in body
 
 
 def test_knowledge_demo_uses_placeholder(client: TestClient) -> None:
+    """knowledge still on the placeholder pending Step 4 design pass."""
     r = client.get("/demo/knowledge")
     assert "demo-placeholder" in r.text
 
@@ -91,13 +103,16 @@ def test_root_exposes_tier_summary(client: TestClient) -> None:
     assert "tier_max" in body
 
 
-def test_stub_build_floors_at_tier_1(client: TestClient) -> None:
-    """StubLLMClient + no retriever should land at T1 only."""
+def test_stub_build_reports_t3_via_default_tool_registry(client: TestClient) -> None:
+    """StubLLMClient + no retriever, but default ToolRegistry registers
+    evidence_search → tier reaches T3. T2/T4/T5 still missing because
+    no real LLM, no graph retriever, no multi-agent runner."""
     body = client.get("/health").json()
-    assert body["tier"] == 1
-    # T2+ should report missing components
-    for higher in ("T2", "T3", "T4", "T5"):
-        assert "missing" in body["tier_status"][higher]
+    assert body["tier"] == 3
+    assert "ok" in body["tier_status"]["T3"]
+    assert "missing" in body["tier_status"]["T2"]  # no real LLM, no vector RAG
+    assert "missing" in body["tier_status"]["T4"]
+    assert "missing" in body["tier_status"]["T5"]
 
 
 def test_global_nav_links_to_demos(client: TestClient) -> None:

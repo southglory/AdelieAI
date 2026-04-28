@@ -1,1 +1,617 @@
-{% extends "demos/_placeholder.html" %}
+{% extends "base.html" %}
+{% block main %}
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* === Full-bleed override === */
+.office-stage {
+    position: relative;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-top: -1rem;
+    margin-bottom: -1rem;
+    min-height: calc(100vh - 80px);
+    color: #d4d0c8;
+    font-family: "Courier Prime", "Courier New", monospace;
+    background:
+        radial-gradient(ellipse at 70% 30%, rgba(240, 168, 92, 0.10) 0%, transparent 50%),
+        linear-gradient(180deg, #1c1f24 0%, #14161a 50%, #0d0f12 100%);
+    overflow: hidden;
+}
+
+/* film grain noise (SVG fractal) */
+.office-stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.45 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 100;
+    mix-blend-mode: overlay;
+}
+
+/* === HEADER (case file stamp) === */
+.office-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.4rem 3rem;
+    background: linear-gradient(180deg, #25282d 0%, #1c1f24 100%);
+    border-bottom: 1px solid #3d3a30;
+    box-shadow: inset 0 -3px 0 rgba(240, 168, 92, 0.4);
+    z-index: 10;
+}
+.case-stamp {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.case-stamp .seal {
+    width: 56px; height: 56px;
+    border: 2px dashed #f0a85c;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    color: #f0a85c;
+    transform: rotate(-8deg);
+    box-shadow: inset 0 0 12px rgba(240, 168, 92, 0.15);
+}
+.case-stamp h1 {
+    font-family: "Special Elite", "Courier Prime", monospace;
+    font-size: 1.5rem;
+    color: #e8d896;
+    margin: 0;
+    letter-spacing: 2px;
+    text-shadow: 1px 1px 0 #0d0f12, 0 0 18px rgba(240, 168, 92, 0.20);
+}
+.case-stamp .sub {
+    font-family: "Courier Prime", monospace;
+    font-size: 0.95rem;
+    color: #756e63;
+    margin-left: 0.6rem;
+    letter-spacing: 1px;
+}
+
+.clock {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 1rem;
+    background: #0d0f12;
+    border: 1px solid #3d3a30;
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
+    font-family: "Courier Prime", monospace;
+    font-size: 0.95rem;
+    color: #f0a85c;
+    letter-spacing: 1px;
+}
+.clock::before {
+    content: "●";
+    color: #f0a85c;
+    animation: tick 2s steps(2, end) infinite;
+}
+@keyframes tick {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0.2; }
+}
+
+/* === STAGE GRID === */
+.stage-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: 38% 62%;
+    gap: 0;
+    z-index: 10;
+}
+
+/* === LEFT: Case board (cork board) === */
+.case-board {
+    position: relative;
+    padding: 2rem 1.6rem 2rem 2.4rem;
+    min-height: calc(100vh - 200px);
+    background:
+        radial-gradient(circle at 12% 18%, rgba(0,0,0,0.20) 1px, transparent 2px),
+        radial-gradient(circle at 78% 35%, rgba(0,0,0,0.18) 1px, transparent 2px),
+        radial-gradient(circle at 42% 65%, rgba(0,0,0,0.18) 1px, transparent 2px),
+        radial-gradient(circle at 88% 88%, rgba(0,0,0,0.20) 1px, transparent 2px),
+        linear-gradient(180deg, #6b4f2f 0%, #5a4226 100%);
+    background-size: 80px 80px, 110px 110px, 90px 90px, 70px 70px, auto;
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.6);
+    border-right: 6px solid #1c1f24;
+}
+.case-board::before {
+    content: "─── CASE BOARD ───";
+    position: absolute;
+    top: 0.6rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: "Special Elite", monospace;
+    font-size: 0.75rem;
+    color: rgba(232, 216, 150, 0.5);
+    letter-spacing: 4px;
+}
+
+.memo-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+    margin-top: 2rem;
+    position: relative;
+}
+
+.memo {
+    position: relative;
+    padding: 0.9rem 1.1rem 0.8rem;
+    background:
+        repeating-linear-gradient(
+            180deg,
+            rgba(78, 87, 102, 0) 0 23px,
+            rgba(78, 87, 102, 0.20) 23px 24px
+        ),
+        linear-gradient(180deg, #f0e8c4 0%, #e8d896 100%);
+    color: #1f1812;
+    font-family: "Courier Prime", monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    border-radius: 1px;
+    box-shadow:
+        2px 4px 8px rgba(0,0,0,0.5),
+        inset 0 0 30px rgba(120, 90, 50, 0.15);
+}
+.memo:nth-child(odd)  { transform: rotate(-1.4deg); }
+.memo:nth-child(even) { transform: rotate(0.9deg); margin-left: 1rem; }
+.memo:nth-child(3n)   { transform: rotate(-0.6deg); margin-right: 0.6rem; }
+
+.memo .pin {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #d44b4b 0%, #8b1f1f 70%, #4a0e0e 100%);
+    box-shadow:
+        0 2px 4px rgba(0,0,0,0.6),
+        inset -1px -1px 2px rgba(0,0,0,0.4);
+}
+.memo .filename {
+    display: block;
+    font-family: "Special Elite", monospace;
+    font-size: 0.75rem;
+    color: #6b4226;
+    letter-spacing: 1px;
+    margin-bottom: 0.35rem;
+    border-bottom: 1px dashed rgba(107, 66, 38, 0.4);
+    padding-bottom: 0.2rem;
+}
+.memo .body { color: #2a1f15; }
+
+/* Red string connecting evidence */
+.string-1, .string-2 {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, #6b1f1f 0%, #8b3030 50%, #6b1f1f 100%);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    transform-origin: left center;
+    z-index: 1;
+    pointer-events: none;
+}
+.string-1 {
+    top: 80px;
+    left: 14%;
+    width: 78%;
+    transform: rotate(8deg);
+    opacity: 0.7;
+}
+.string-2 {
+    top: 230px;
+    left: 18%;
+    width: 70%;
+    transform: rotate(-12deg);
+    opacity: 0.6;
+}
+
+/* === RIGHT: Interrogation desk === */
+.interrogation {
+    position: relative;
+    padding: 2rem 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    background:
+        radial-gradient(ellipse 70% 40% at 50% 18%, rgba(240, 168, 92, 0.18) 0%, transparent 60%),
+        linear-gradient(180deg, #14161a 0%, #1c1f24 60%, #14161a 100%);
+}
+
+.detective-tag {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.7rem 1.2rem;
+    background: linear-gradient(180deg, #25282d 0%, #1a1c20 100%);
+    border: 1px solid #3d3a30;
+    align-self: flex-start;
+}
+.detective-tag .badge {
+    width: 36px; height: 36px;
+    background: radial-gradient(circle at 35% 35%, #f0d098 0%, #c08a4a 60%, #6b4226 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    box-shadow: inset -2px -2px 4px rgba(0,0,0,0.4);
+}
+.detective-tag .id {
+    display: flex;
+    flex-direction: column;
+}
+.detective-tag .id .name {
+    font-family: "Special Elite", monospace;
+    font-size: 0.95rem;
+    color: #e8d896;
+    letter-spacing: 1px;
+}
+.detective-tag .id .role {
+    font-family: "Courier Prime", monospace;
+    font-size: 0.72rem;
+    color: #756e63;
+    letter-spacing: 1px;
+}
+
+/* Transcript paper — typewriter on cream */
+.transcript {
+    flex: 1;
+    background:
+        repeating-linear-gradient(
+            180deg,
+            rgba(120, 110, 90, 0) 0 28px,
+            rgba(120, 110, 90, 0.10) 28px 29px
+        ),
+        linear-gradient(180deg, #ebe6d4 0%, #e2dac1 100%);
+    color: #1f1812;
+    border: 1px solid #3d3a30;
+    box-shadow:
+        0 8px 24px rgba(0,0,0,0.6),
+        inset 0 0 30px rgba(160, 130, 80, 0.10);
+    padding: 1.5rem 2rem 1rem;
+    min-height: 320px;
+    max-height: 460px;
+    overflow-y: auto;
+    font-family: "Courier Prime", monospace;
+    font-size: 1rem;
+    line-height: 1.6;
+    scrollbar-width: thin;
+    scrollbar-color: #756e63 #d4cdb5;
+}
+.transcript::-webkit-scrollbar         { width: 8px; }
+.transcript::-webkit-scrollbar-track   { background: #d4cdb5; }
+.transcript::-webkit-scrollbar-thumb   { background: #756e63; }
+
+#dialogue-thread { display: flex; flex-direction: column; gap: 1.2rem; }
+
+.transcript .empty-state {
+    margin: 2rem 0;
+    text-align: center;
+    color: #6b6354;
+    font-style: italic;
+    line-height: 1.7;
+}
+.transcript .empty-state .arrow {
+    display: block;
+    margin-top: 0.6rem;
+    color: #8b3030;
+    font-family: "Special Elite", monospace;
+    font-size: 0.85rem;
+    animation: bob 1.4s ease-in-out infinite;
+}
+@keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(4px); }
+}
+
+/* Re-skin chat/_pair.html turns inside transcript */
+.transcript .turn {
+    background: none;
+    border: none;
+    padding: 0;
+    max-width: 100%;
+    color: #1f1812;
+}
+.transcript .turn .role {
+    font-family: "Special Elite", monospace;
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+    color: #756e63;
+    margin-bottom: 0.3rem;
+}
+.transcript .turn.user .role::before {
+    content: "Q. ";
+    color: #8b3030;
+    font-weight: 700;
+}
+.transcript .turn.assistant .role::before {
+    content: "A. ";
+    color: #2a4d6b;
+    font-weight: 700;
+}
+.transcript .turn .body {
+    font-family: "Courier Prime", monospace;
+    font-size: 1.02rem;
+    line-height: 1.65;
+    color: #1f1812;
+    white-space: pre-wrap;
+    padding-left: 1.6rem;
+    border-left: 2px solid rgba(120, 110, 90, 0.25);
+}
+.transcript .turn.user .body { font-style: italic; color: #432619; }
+.transcript .turn .stat {
+    font-family: "Courier Prime", monospace;
+    font-size: 0.72rem;
+    color: #8b806f;
+    margin-left: 0.6rem;
+}
+
+/* HTMX indicator */
+.htmx-indicator { display: none; margin-top: 0.5rem; }
+.htmx-request .htmx-indicator { display: inline-block; }
+.thinking {
+    font-family: "Special Elite", monospace;
+    font-size: 0.85rem;
+    color: #8b3030;
+    letter-spacing: 1.5px;
+}
+.thinking::after {
+    content: "...";
+    animation: dots 1s steps(3, end) infinite;
+}
+@keyframes dots {
+    0%   { content: "."; }
+    33%  { content: ".."; }
+    66%  { content: "..."; }
+    100% { content: "."; }
+}
+
+/* Input bar — interrogation prompt */
+.interrogation-input {
+    background: #0d0f12;
+    border: 1px solid #3d3a30;
+    box-shadow: inset 0 0 16px rgba(0,0,0,0.6);
+}
+.interrogation-input form {
+    display: flex;
+    align-items: center;
+    padding: 0.85rem 1.2rem;
+}
+.interrogation-input .prompt {
+    font-family: "Special Elite", monospace;
+    font-size: 0.95rem;
+    color: #f0a85c;
+    margin-right: 0.8rem;
+    letter-spacing: 1px;
+    user-select: none;
+}
+.interrogation-input input[type=text] {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: "Courier Prime", monospace;
+    font-size: 1.05rem;
+    color: #d4d0c8;
+    letter-spacing: 0.5px;
+    caret-color: #f0a85c;
+}
+.interrogation-input input::placeholder {
+    color: #4d4a42;
+    font-style: italic;
+}
+.interrogation-input button {
+    margin-left: 0.8rem;
+    padding: 0.55rem 1.3rem;
+    background: transparent;
+    border: 1px solid #f0a85c;
+    color: #f0a85c;
+    font-family: "Special Elite", monospace;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 120ms ease;
+}
+.interrogation-input button:hover {
+    background: #f0a85c;
+    color: #0d0f12;
+    box-shadow: 0 0 14px rgba(240, 168, 92, 0.5);
+}
+.interrogation-input button:active { transform: translateY(1px); }
+
+/* === FOOTER (citations + tier) === */
+.case-footer {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.2rem;
+    padding: 0.9rem 3rem;
+    background: linear-gradient(180deg, #1c1f24 0%, #14161a 100%);
+    border-top: 1px solid #3d3a30;
+    z-index: 10;
+}
+.citations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex: 1;
+    align-items: center;
+}
+.citation-label {
+    font-family: "Special Elite", monospace;
+    font-size: 0.75rem;
+    color: #756e63;
+    letter-spacing: 1px;
+    margin-right: 0.5rem;
+}
+.citation-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.7rem;
+    background: #25282d;
+    border: 1px solid #3d3a30;
+    border-radius: 2px;
+    font-family: "Courier Prime", monospace;
+    font-size: 0.78rem;
+    color: #d4d0c8;
+    transition: all 120ms ease;
+}
+.citation-chip:hover {
+    border-color: #f0a85c;
+    color: #f0a85c;
+    background: #2a2418;
+}
+.citation-chip .icon { color: #8b3030; font-size: 0.7rem; }
+
+.tier-info {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-family: "Courier Prime", monospace;
+    font-size: 0.85rem;
+    color: #756e63;
+}
+.tier-badge-T3 {
+    font-family: "Special Elite", monospace;
+    font-size: 0.75rem;
+    color: #f0a85c;
+    padding: 3px 9px;
+    border: 1px solid #f0a85c;
+    letter-spacing: 1.5px;
+}
+.tier-info code     { color: #f0a85c; }
+.case-footer a      { color: #f0a85c; text-decoration: none; font-family: "Special Elite", monospace; font-size: 0.8rem; letter-spacing: 1px; }
+.case-footer a:hover { text-shadow: 0 0 6px rgba(240, 168, 92, 0.5); }
+
+/* Responsive */
+@media (max-width: 920px) {
+    .stage-grid    { grid-template-columns: 1fr; }
+    .case-board    { min-height: auto; padding: 1.2rem; border-right: none; border-bottom: 6px solid #1c1f24; }
+    .interrogation { padding: 1.2rem; }
+    .office-header { padding: 1rem; flex-direction: column; gap: 0.8rem; align-items: flex-start; }
+    .case-footer   { padding: 0.9rem 1.2rem; }
+    .string-1, .string-2 { display: none; }
+}
+</style>
+
+<div class="office-stage">
+
+    <header class="office-header">
+        <div class="case-stamp">
+            <div class="seal">🔍</div>
+            <h1>CASE FILE #07</h1>
+            <span class="sub">형사 사무소 · 단독 탐정</span>
+        </div>
+        <div class="clock">PM 11 : 34</div>
+    </header>
+
+    <div class="stage-grid">
+
+        <aside class="case-board">
+            <div class="memo-stack">
+                <div class="string-1"></div>
+                <div class="string-2"></div>
+
+                <div class="memo">
+                    <span class="pin"></span>
+                    <span class="filename">📄 evidence_1.md</span>
+                    <span class="body">현장에서 발견된 유리 조각. 안쪽 방향으로 떨어져 있었음. 추정 충격 위치는 방 내부에서 외부로.</span>
+                </div>
+
+                <div class="memo">
+                    <span class="pin"></span>
+                    <span class="filename">📄 case_log_07.md</span>
+                    <span class="body">23:00 — 용의자 A: 가게에 있었다.<br>23:30 — 동일 인물: 거리에 있었다.<br>두 진술 중 최소 하나는 위증.</span>
+                </div>
+
+                <div class="memo">
+                    <span class="pin"></span>
+                    <span class="filename">📄 timeline.txt</span>
+                    <span class="body">11:04 — 멈춘 시계 (조작 추정)<br>11:30 — 실제 사건 시각<br>11:45 — 비명 소리<br>12:10 — 경찰 도착</span>
+                </div>
+
+                <div class="memo">
+                    <span class="pin"></span>
+                    <span class="filename">📄 witness_a.md</span>
+                    <span class="body">증인 A: 11시경 가게 앞 통과. 시간 인식이 흐릿. 신뢰도 중간.</span>
+                </div>
+            </div>
+        </aside>
+
+        <section class="interrogation">
+
+            <div class="detective-tag">
+                <div class="badge">{% if persona %}{{ persona.emoji }}{% else %}🔍{% endif %}</div>
+                <div class="id">
+                    <span class="name">{% if persona %}{{ persona.display_name }}{% else %}냉정한 탐정{% endif %}</span>
+                    <span class="role">단독 탐정 · 형사 사무소 #07</span>
+                </div>
+            </div>
+
+            <div class="transcript">
+                <div id="dialogue-thread">
+                    <div class="empty-state">
+                        책상 램프 아래, 탐정이 너를 마주 본다.<br>
+                        한 손에는 식어버린 커피, 다른 손에는 사건 파일.
+                        <span class="arrow">▼ 질문하라 ▼</span>
+                    </div>
+                </div>
+                <span class="htmx-indicator">
+                    <span class="thinking">탐정이 노트를 넘긴다</span>
+                </span>
+            </div>
+
+            <div class="interrogation-input">
+                <form hx-post="/web/chat/cold_detective/messages"
+                      hx-target="#dialogue-thread"
+                      hx-swap="beforeend"
+                      hx-on::before-request="document.querySelector('.empty-state')?.remove()"
+                      hx-on::after-request="this.reset(); const t = document.querySelector('.transcript'); t.scrollTop = t.scrollHeight">
+                    <span class="prompt">Q.</span>
+                    <input type="text"
+                           name="message"
+                           placeholder="탐정에게 사실을 묻거나, 모순을 지적하라..."
+                           autocomplete="off"
+                           autofocus
+                           required>
+                    <button type="submit">심문</button>
+                </form>
+            </div>
+        </section>
+
+    </div>
+
+    <footer class="case-footer">
+        <div class="citations">
+            <span class="citation-label">📎 사건 파일 (evidence_search):</span>
+            <span class="citation-chip"><span class="icon">●</span>evidence_1.md</span>
+            <span class="citation-chip"><span class="icon">●</span>case_log_07.md</span>
+            <span class="citation-chip"><span class="icon">●</span>timeline.txt</span>
+            <span class="citation-chip"><span class="icon">●</span>witness_a.md</span>
+        </div>
+        <div class="tier-info">
+            <span class="tier-badge-T3">tier T3</span>
+            <span>· 1 tool active</span>
+            <span>· persona <code>cold_detective</code></span>
+            <a href="/demo/">← back</a>
+        </div>
+    </footer>
+
+</div>
+
+{% endblock %}

@@ -8,6 +8,8 @@ from fastapi.staticfiles import StaticFiles
 from core import __version__
 from core.api.agents import build_router
 from core.api.demos_router import build_demos_router
+from core.tools import ToolRegistry
+from core.tools.evidence_search import EvidenceSearch
 from core.api.docs import build_docs_router
 from core.api.docs_web import build_docs_web_router
 from core.api.eval import build_eval_router
@@ -82,7 +84,8 @@ def _compute_tier(
         tool_registry = getattr(app.state, "tool_registry", None)
         if tool_registry is not None and len(tool_registry) > 0:
             tier = max(tier, 3)
-            statuses["T3"] = f"ok ({len(tool_registry)} tools)"
+            n = len(tool_registry)
+            statuses["T3"] = f"ok ({n} tool{'s' if n != 1 else ''})"
         else:
             statuses["T3"] = "missing: tool_registry"
     except ImportError:
@@ -295,6 +298,13 @@ def build_app(
     app.state.ingest = ingest
     app.state.retriever = retriever
     app.state.chat_store = resolved_chat_store
+
+    # T3 — default tool registry. Registers the evidence_search stub used
+    # by /demo/legal so `_compute_tier` can declare "T3: ok (1 tool)" out
+    # of the box. Real tool wiring per persona is a future milestone.
+    tool_registry = ToolRegistry()
+    tool_registry.register(EvidenceSearch())
+    app.state.tool_registry = tool_registry
     app.include_router(
         build_router(app.state.store, app.state.llm, retriever=retriever)
     )
