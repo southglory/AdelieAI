@@ -67,6 +67,19 @@
 - TRL `DPOTrainer` 가 소비
 - voice 미세 조정 (SFT 후 추가 단계)
 
+## Step 6.1.A 실측 — 학습 전 시스템 프롬프트가 더 강함
+
+| Persona | v2 baseline | v1 LoRA (60+60 페어) | v2 + 강화된 시스템 프롬프트 |
+|---|---|---|---|
+| cynical_merchant | 90% | 80% (regression) | **100%** ✅ |
+| cold_detective | 90% | (안 시도) | **100%** ✅ |
+| ancient_dragon | 80% | (안 시도) | **90%** (hybrid prompt) ✅ |
+
+→ **결론**: 60-페어 per-persona LoRA 보다 *시스템 프롬프트 엔지니어링* 이 ROI 압도적.
+[`methods/system_prompt_engineering.md`](methods/system_prompt_engineering.md) 의 7 패턴 적용 + grounding-heavy 는 hybrid (EN rules + KO voice).
+
+LoRA 가 의미 가지려면 200+ 페어 + DPO. 60 페어로는 v2 baseline 못 이김.
+
 ## "단일 숫자" 채택 결정 (4 메트릭 합산)
 
 ```python

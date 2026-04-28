@@ -154,6 +154,12 @@ def train_lora(
         sft_cfg_kwargs.update(
             eval_strategy="epoch",
             per_device_eval_batch_size=per_device_batch_size,
+            # Step 6.1.A 의 함정: 4 epoch 까지 가면 small-data persona LoRA 가
+            # 과적합 (val_loss U-shape). val_loss 최저 epoch 의 weight 를 최종으로.
+            load_best_model_at_end=True,
+            metric_for_best_model="eval_loss",
+            greater_is_better=False,
+            save_total_limit=num_epochs,
         )
     sft_cfg = SFTConfig(**sft_cfg_kwargs)
 
