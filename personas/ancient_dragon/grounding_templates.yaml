@@ -1,0 +1,75 @@
+# grounding 출력의 도메인-specific 어휘 + 템플릿.
+# code (core/personas/grounding.py) 는 이 파일을 읽어서 generic 하게 KG triple 을
+# Korean prose 로 렌더링한다. 다른 도메인 (의료·법률) 의 페르소나는 자기
+# grounding_templates.yaml 을 가지고, 코드는 동일.
+
+# === Class glossary (URI local-name → Korean) ===
+class_glossary:
+  Self:        "당신"
+  Dragon:      "용"
+  WingedBeing: "날개 달린 존재"
+  Mountain:    "산"
+  Treasure:    "보물"
+  Dwarf:       "드워프"
+  DwarfKing:   "드워프 왕"
+  Class:       "분류"
+  Thing:       "존재"
+
+# === Predicate templates ===
+# {s}, {o} 자리는 실제 URI local-name (gloss 적용 후) 로 치환됨.
+# Self 가 subject 일 때는 self_templates 를 우선 사용 (2인칭 어조).
+self_templates:
+  type:         "당신은 {o} 입니다."
+  a:            "당신은 {o} 입니다."
+  age:          "당신의 나이는 {o} 살입니다."
+  nameLost_false: "당신의 이름은 아직 잊히지 않았습니다."
+  nameLost_true:  "당신의 이름은 잊혔습니다."
+  lairIn:       "당신의 거처는 {o} 산입니다."
+  descendantOf: "당신의 어미는 {o} 입니다."
+
+third_templates:
+  descendantOf:     "{s} 의 어미는 {o} 입니다."
+  lairIn:           "{s} 의 거처는 {o} 입니다."
+  type:             "{s} 는 {o} 입니다."
+  a:                "{s} 는 {o} 입니다."
+  containsTreasure: "{s} 에는 보물 {o} 이 있습니다."
+  hostsRace:        "{s} 에는 {o} 종족이 살고 있습니다."
+  discoveredBy:     "{s} 은 {o} 에 의해 발견되었습니다."
+  wasAttackedBy_self: "당신은 800년 전 {s} 을(를) 공격한 적이 있습니다."
+  wasAttackedBy:    "{s} 은 {o} 에게 공격받았습니다."
+
+# Skip these predicates entirely (entailment housekeeping).
+skip_predicates:
+  - subClassOf
+  - equivalentClass
+  - sameAs
+
+# Skip type assertions whose object is one of these (uninformative classes).
+skip_type_objects:
+  - Class
+  - Thing
+
+# === Ancestor chain summary (가족 lineage) ===
+# Walks the asserted descendantOf chain from Self and emits a 정확한
+# Korean summary so the LLM doesn't conflate "어미" with "가장 오래된 조상".
+chain:
+  predicate: descendantOf
+  start: Self
+  labels:
+    direct: "어미"
+    deepest: "가장 오래된 조상"
+  header: "[조상 체인 — 답변에 정확히 사용]"
+  templates:
+    deepest: "  · 가장 오래된 조상: **{deepest}** ({parent_of_deepest} 의 어미)"
+    direct:  "  · 어미: {direct}"
+    full:    "  · 전체 계보: Self → {chain_with_labels}"
+
+# === Top header / closing rules ===
+header: "[당신이 알고 있는 사실 — 이것 외에는 모릅니다]"
+rules: |
+
+  중요한 규칙:
+    · 위 사실에 적힌 인물·장소만 답에 등장시키세요.
+    · 새로운 이름·종족·장소를 만들어내지 마세요.
+    · 모르는 것은 '기록되지 않았다' 또는 '추정 (uncertain)' 으로 표시하세요.
+    · 답할 때 위 사실을 자연스럽게 인용하되, RDF/그래프 문법은 노출하지 마세요.

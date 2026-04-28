@@ -12,13 +12,45 @@ the system prompt carries the asserted facts directly, dramatically
 reducing fabrication.
 
 This is the cheap version of T3/T4 tool-use — "retrieval as system
-prompt" rather than mid-generation function calls. Real LLM-driven
-tool calling (Qwen2.5's <tool_call> format) lands in a future
-milestone; this file is the bridge.
+prompt" rather than mid-generation function calls.
+
+# Architecture: data ↔ code separation
+
+This module is **generic** — it knows how to walk a graph, render
+triples, and assemble a prompt suffix, but it does NOT hardcode any
+domain vocabulary. All Korean labels (`어미`, `용`, `보물` …) and
+predicate templates live in `personas/{persona_id}/grounding_templates.yaml`.
+
+Adding a new knowledge-vertical persona (e.g. medical advisor) means:
+  1. Author its `grounding_templates.yaml` with the right vocabulary
+     (`{s} 의 주치의는 {o}` instead of `{s} 의 어미는 {o}` etc.)
+  2. Reuse this module unchanged.
 """
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any
+
 from core.personas.registry import Persona
+
+
+def _adelie_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _load_templates(persona_id: str) -> dict[str, Any] | None:
+    """Load `personas/{persona_id}/grounding_templates.yaml` if present."""
+    try:
+        import yaml  # type: ignore[import-not-found]
+    except ImportError:
+        return None
+    path = _adelie_root() / "personas" / persona_id / "grounding_templates.yaml"
+    if not path.exists():
+        return None
+    try:
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
 
 
 def build_grounding_context(
@@ -37,123 +69,158 @@ def build_grounding_context(
     is not registered on app.state).
     """
     if persona.industry == "knowledge" and graph_retriever is not None:
-        return _knowledge_grounding(graph_retriever, max_triples)
+        templates = _load_templates(persona.persona_id) or _DEFAULT_KG_TEMPLATES
+        return _knowledge_grounding(graph_retriever, max_triples, templates)
     if persona.industry == "legal" and tool_registry is not None:
         return _legal_grounding(tool_registry, user_text, max_evidence)
     return ""
 
 
-def _knowledge_grounding(graph_retriever, max_triples: int) -> str:
-    """For dragon-class personas: expand the speaker (`:Self`) and
-    render the resulting triples as Korean prose. RDF turtle is hostile
-    to LLM interpretation; natural-language facts are followed.
+# === Generic KG → prose renderer ===
 
-    Skips entailment-housekeeping predicates (subClassOf, equivalentClass)
-    and class-membership of class entities — these don't help the LLM
-    answer "who is your mother".
-    """
+def _local(uri: str) -> str:
+    return uri.lstrip(":") if uri.startswith(":") else uri
+
+
+def _gloss(name: str, glossary: dict[str, str]) -> str:
+    """Korean rendering of a URI local-name; falls through to the
+    raw local-name (proper nouns kept verbatim)."""
+    n = _local(name)
+    return glossary.get(n, n)
+
+
+def _render_fact(triple, templates: dict[str, Any]) -> str | None:
+    """Render a single Triple as a Korean sentence using templates."""
+    s_local = _local(triple.subject)
+    p_local = _local(triple.predicate)
+    o_local = _local(triple.object)
+
+    skip_pred = set(templates.get("skip_predicates", []))
+    if p_local in skip_pred:
+        return None
+    skip_type_obj = set(templates.get("skip_type_objects", []))
+    if p_local in {"type", "a"} and o_local in skip_type_obj:
+        return None
+
+    glossary = templates.get("class_glossary", {})
+    s_ko = _gloss(s_local, glossary)
+    o_ko = _gloss(o_local, glossary)
+
+    self_t = templates.get("self_templates", {})
+    third_t = templates.get("third_templates", {})
+
+    # Self-anchored facts → 2인칭
+    if s_local == "Self":
+        # boolean-typed predicates can have value-suffixed templates
+        # (e.g. nameLost_false / nameLost_true)
+        suffixed = f"{p_local}_{triple.object.lower()}"
+        if suffixed in self_t:
+            return self_t[suffixed].format(s=s_ko, o=o_ko)
+        if p_local in self_t:
+            return self_t[p_local].format(s=s_ko, o=o_ko)
+
+    # 3rd-person: also support special "_self" suffix when object is Self
+    if o_local == "Self":
+        suffixed = f"{p_local}_self"
+        if suffixed in third_t:
+            return third_t[suffixed].format(s=s_ko, o=o_ko)
+    if p_local in third_t:
+        return third_t[p_local].format(s=s_ko, o=o_ko)
+    return None
+
+
+def _knowledge_grounding(
+    graph_retriever, max_triples: int, templates: dict[str, Any]
+) -> str:
+    """Generic KG-RAG grounding using per-persona templates."""
     hits = graph_retriever.expand("Self", depth=2)
     if not hits:
         return ""
-    raw = hits[0].triples[:max_triples * 2]  # over-fetch, then prune
+    raw = hits[0].triples[:max_triples * 2]
     sentences: list[str] = []
     seen: set[str] = set()
     for t in raw:
-        s = _render_fact(t)
+        s = _render_fact(t, templates)
         if s and s not in seen:
             sentences.append(s)
             seen.add(s)
     if not sentences:
         return ""
+
     body = "\n".join("  · " + s for s in sentences[:max_triples])
-    return (
-        "\n\n[당신이 알고 있는 사실 — 이것 외에는 모릅니다]\n"
-        + body
-        + "\n\n중요한 규칙:\n"
-        + "  · 위 사실에 적힌 인물·장소만 답에 등장시키세요.\n"
-        + "  · 새로운 이름·종족·장소를 만들어내지 마세요.\n"
-        + "  · 모르는 것은 '기록되지 않았다' 또는 '추정 (uncertain)' 으로 표시하세요.\n"
-        + "  · 답할 때 위 사실을 자연스럽게 인용하되, RDF/그래프 문법은 노출하지 마세요."
+    chain_summary = _chain_summary(graph_retriever, templates)
+
+    header = templates.get("header", "[알려진 사실]")
+    rules = templates.get("rules", "")
+    return f"\n\n{header}\n{body}{chain_summary or ''}{rules}"
+
+
+def _chain_summary(graph_retriever, templates: dict[str, Any]) -> str:
+    """Walk the configured chain (e.g. descendantOf from Self) and emit
+    a Korean summary so the LLM gets the lineage right."""
+    chain_cfg = templates.get("chain")
+    if not chain_cfg:
+        return ""
+    pred = chain_cfg["predicate"]
+    start = chain_cfg["start"]
+    glossary = templates.get("class_glossary", {})
+    chain_templates = chain_cfg.get("templates", {})
+
+    chain: list[str] = []
+    current = start
+    visited: set[str] = set()
+    for _ in range(8):
+        if current in visited:
+            break
+        visited.add(current)
+        hits = graph_retriever.expand(current, depth=1)
+        if not hits:
+            break
+        next_ancestor = None
+        for t in hits[0].triples:
+            if (_local(t.subject) == current
+                    and _local(t.predicate) == pred
+                    and not t.inferred):
+                next_ancestor = _local(t.object)
+                break
+        if not next_ancestor:
+            break
+        chain.append(next_ancestor)
+        current = next_ancestor
+    if not chain:
+        return ""
+
+    header = chain_cfg.get("header", "[체인]")
+    if len(chain) == 1:
+        return (
+            f"\n\n{header}\n"
+            + chain_templates.get("direct", "  · {direct}").format(direct=_gloss(chain[0], glossary))
+        )
+
+    deepest = _gloss(chain[-1], glossary)
+    parent_of_deepest = _gloss(chain[-2], glossary)
+    direct = _gloss(chain[0], glossary)
+    chain_with_labels = " → ".join(
+        f"{_gloss(name, glossary)}" + (
+            f" ({chain_cfg['labels']['direct']})" if i == 0
+            else (f" ({chain_cfg['labels']['deepest']})" if i == len(chain) - 1
+                  else "")
+        )
+        for i, name in enumerate(chain)
     )
+    lines = [
+        chain_templates.get("deepest", "  · 가장 깊은: {deepest}").format(
+            deepest=deepest, parent_of_deepest=parent_of_deepest
+        ),
+        chain_templates.get("direct", "  · 직계: {direct}").format(direct=direct),
+        chain_templates.get("full", "  · 전체: {chain_with_labels}").format(
+            chain_with_labels=chain_with_labels
+        ),
+    ]
+    return "\n\n" + header + "\n" + "\n".join(lines)
 
 
-# === KG triple → Korean prose ===
-
-# URI local-name → Korean phrase (so "Dragon" appears as "용",
-# "Mountain" as "산" etc. in the LLM-facing fact list).
-_KO_GLOSS = {
-    "Self":        "당신",
-    "Dragon":      "용",
-    "WingedBeing": "날개 달린 존재",
-    "Mountain":    "산",
-    "Treasure":    "보물",
-    "Dwarf":       "드워프",
-    "DwarfKing":   "드워프 왕",
-    "Class":       "분류",
-    "Thing":       "존재",
-}
-
-
-def _ko(uri_or_name: str) -> str:
-    """Korean rendering of a URI local-name; falls through to the
-    raw local-name (proper nouns like Vyrnaes, Sothryn, Erebor,
-    Arkenstone, Thrór keep their original spellings)."""
-    name = uri_or_name.lstrip(":") if uri_or_name.startswith(":") else uri_or_name
-    return _KO_GLOSS.get(name, name)
-
-
-_PREDICATE_MAP_SELF = {
-    # Subject is :Self → render in 2nd-person ("당신은 ...")
-    ":type":         lambda o: f"당신은 {_ko(o)} 입니다.",
-    ":a":            lambda o: f"당신은 {_ko(o)} 입니다.",
-    ":age":          lambda o: f"당신의 나이는 {o} 살입니다.",
-    ":nameLost":     lambda o: (
-        "당신의 이름은 아직 잊히지 않았습니다."
-        if o.lower() in {"false", "0"}
-        else "당신의 이름은 잊혔습니다."
-    ),
-    ":lairIn":       lambda o: f"당신의 거처는 {_ko(o)} 산입니다.",
-    ":descendantOf": lambda o: f"당신의 어미는 {_ko(o)} 입니다.",
-}
-
-_PREDICATE_MAP_3RD = {
-    ":descendantOf":     lambda s, o: f"{_ko(s)} 의 어미는 {_ko(o)} 입니다.",
-    ":lairIn":           lambda s, o: f"{_ko(s)} 의 거처는 {_ko(o)} 입니다.",
-    ":type":             lambda s, o: (
-        None if o.lstrip(":") in {"Class", "Thing"}
-        else f"{_ko(s)} 는 {_ko(o)} 입니다."
-    ),
-    ":a":                lambda s, o: (
-        None if o.lstrip(":") in {"Class", "Thing"}
-        else f"{_ko(s)} 는 {_ko(o)} 입니다."
-    ),
-    ":containsTreasure": lambda s, o: f"{_ko(s)} 에는 보물 {_ko(o)} 이 있습니다.",
-    ":hostsRace":        lambda s, o: f"{_ko(s)} 에는 {_ko(o)} 종족이 살고 있습니다.",
-    ":discoveredBy":     lambda s, o: f"{_ko(s)} 은 {_ko(o)} 에 의해 발견되었습니다.",
-    ":wasAttackedBy":    lambda s, o: (
-        # When the speaker (:Self) is the attacker, render in 1인칭.
-        f"당신은 800년 전 {_ko(s)} 을(를) 공격한 적이 있습니다."
-        if o.lstrip(":") == "Self"
-        else f"{_ko(s)} 은 {_ko(o)} 에게 공격받았습니다."
-    ),
-}
-
-# Predicates that just clutter the LLM's input and don't help answer
-# user-facing questions.
-_SKIP_PREDICATES = {":subClassOf", ":equivalentClass", ":sameAs"}
-
-
-def _render_fact(triple) -> str | None:
-    """Render a single Triple as a Korean sentence, or None to skip."""
-    s, p, o = triple.subject, triple.predicate, triple.object
-    if p in _SKIP_PREDICATES:
-        return None
-    if s == ":Self" and p in _PREDICATE_MAP_SELF:
-        return _PREDICATE_MAP_SELF[p](o)
-    if p in _PREDICATE_MAP_3RD:
-        return _PREDICATE_MAP_3RD[p](s, o)
-    return None
-
+# === Legal grounding (no per-persona template needed yet) ===
 
 def _legal_grounding(tool_registry, user_text: str, max_evidence: int) -> str:
     """For detective-class personas: pre-run evidence_search with the
@@ -187,6 +254,29 @@ def _legal_grounding(tool_registry, user_text: str, max_evidence: int) -> str:
         + "  · 발췌에 없는 사실을 추론할 때는 '추정 (uncertain)' 표지를 명시하세요.\n"
         + "  · 답할 때 자료 출처 (괄호 안의 파일명) 를 한 번이라도 언급하면 신뢰도가 올라갑니다."
     )
+
+
+# === Default KG templates (fallback when persona has no yaml) ===
+
+_DEFAULT_KG_TEMPLATES: dict[str, Any] = {
+    "class_glossary": {"Self": "당신"},
+    "self_templates": {
+        "type": "당신은 {o} 입니다.",
+        "a": "당신은 {o} 입니다.",
+    },
+    "third_templates": {
+        "type": "{s} 는 {o} 입니다.",
+        "a": "{s} 는 {o} 입니다.",
+    },
+    "skip_predicates": ["subClassOf", "equivalentClass", "sameAs"],
+    "skip_type_objects": ["Class", "Thing"],
+    "header": "[알려진 사실]",
+    "rules": (
+        "\n\n중요한 규칙:\n"
+        "  · 위 사실에 없는 정보를 만들지 마세요.\n"
+        "  · 모르는 것은 '기록되지 않았다' 라고 답하세요."
+    ),
+}
 
 
 __all__ = ["build_grounding_context"]
