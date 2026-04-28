@@ -8,7 +8,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![tests](https://img.shields.io/badge/tests-190%20passing-brightgreen.svg)](#testing)
+[![tests](https://img.shields.io/badge/tests-200%20passing-brightgreen.svg)](#testing)
 [![Persona Pack v0.1](https://img.shields.io/badge/persona%20pack-v0.1-blueviolet.svg)](docs/PERSONA_PACK.md)
 
 </div>
@@ -40,7 +40,26 @@ A persona's tech needs depend on the use case. AdelieAI is built as a **tiered s
 | **T4 — Domain Expert** | legal/medical advisor | + RDF/OWL KG, OWL reasoner |
 | **T5 — Multi-agent Quest** | game world, simulation | + vLLM multi-LoRA, LangGraph orchestration |
 
-Three industry verticals showcase the tier ladder out of the box: **`/demo/gaming`** (T2 — `cynical_merchant`), **`/demo/legal`** (T3 — `cold_detective`), **`/demo/knowledge`** (T4 — `ancient_dragon`). `/health` introspects which tier the running build supports. Full framework + decision tree: [`docs/CAPABILITY_TIERS.md`](docs/CAPABILITY_TIERS.md).
+Three industry verticals showcase the tier ladder out of the box. Same engine, three industry-shaped faces — each captured below against the real `Qwen2.5-7B-Instruct + qwen-roleplay-v2` on a single RTX 3090.
+
+[![demos index — three verticals, three tiers](docs/screenshots/20_demos_index.png)](docs/screenshots/20_demos_index.png)
+
+| route | persona | tier | what it shows |
+|---|---|---|---|
+| [`/demo/gaming`](docs/screenshots/21_gaming_live.png) | 💰 `cynical_merchant` | **T2** | RPG shop scene — JRPG dialogue HUD, inventory mock, gold counter, blunt merchant voice |
+| [`/demo/legal`](docs/screenshots/22_legal_live.png) | 🔍 `cold_detective` | **T3** | Noir detective office — cork board with case summary, evidence memos, red string connectors, transcript paper, citation chips, `evidence_search` tool active |
+| `/demo/knowledge` | 🐉 `ancient_dragon` | **T4** | (placeholder — design pass in v0.3 with KG/SPARQL trace) |
+
+<table>
+  <tr>
+    <td width="50%"><a href="docs/screenshots/21_gaming_live.png"><img src="docs/screenshots/21_gaming_live.png" alt="/demo/gaming — JRPG shop with cynical_merchant"/></a></td>
+    <td width="50%"><a href="docs/screenshots/22_legal_live.png"><img src="docs/screenshots/22_legal_live.png" alt="/demo/legal — noir detective office with cold_detective"/></a></td>
+  </tr>
+</table>
+
+`/health` introspects which tier the running build supports. Full framework + decision tree: [`docs/CAPABILITY_TIERS.md`](docs/CAPABILITY_TIERS.md).
+
+Don't have weights downloaded? `StubLLMClient` ships persona-aware canned voice — visiting the demos still shows in-character replies (penguin / fish / knight / merchant / detective each have a small canned set), so OSS visitors get the *shape* without GPU.
 
 ## Why a *persona engine*?
 
@@ -101,7 +120,7 @@ Full spec: [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md). Roadmap to v0.2 adds 
 | **Training** | TRL `SFTTrainer` LoRA, plus a pure-PyTorch nanoGPT for from-scratch experiments |
 | **Logging** | Structured JSON + per-request id propagation |
 | **Quantization** | GGUF q4_k_m via llama-cpp-python; merged adapter → 4.4 GB single file (3.25× smaller) |
-| **Tests** | 190 unit + Playwright E2E walker |
+| **Tests** | 200 unit + Playwright E2E walker |
 
 ## Design principles
 

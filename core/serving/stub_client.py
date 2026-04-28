@@ -1,3 +1,28 @@
+"""StubLLMClient — model-free fallback that still sounds like the persona.
+
+Two modes:
+
+  1. Persona-aware mode: the system prompt contains a recognized
+     persona keyword (펭귄 · 물고기 · 기사 · 상인 · 탐정), so we return a
+     hand-curated in-character canned reply. Picking is deterministic
+     (hash of the user prompt) so the same prompt always yields the
+     same reply within a run, but a thread of varied prompts surfaces
+     varied replies. This makes the demo pages presentable on a
+     machine with no real model loaded — visitors clicking the OSS
+     repo see voice, not echo metadata.
+
+  2. Fallback mode: no persona keyword recognized → original echo
+     behavior preserved (useful for debugging tests, exposes
+     params + prompt length).
+
+The canned lines are subset of the lines used to teach the LoRA
+v2 adapter. Stub mode therefore previews the *target* voice; with
+the real model loaded, generation produces analogous (not identical)
+output.
+"""
+
+from __future__ import annotations
+
 import asyncio
 import time
 from typing import AsyncIterator
@@ -5,10 +30,85 @@ from typing import AsyncIterator
 from core.serving.protocols import GenerationParams, GenerationResult, StreamEvent
 
 
+# (system-prompt keyword) → list of canned in-character replies
+# Order matters: more specific keywords come first so "잡화상" wins
+# over a possible bare "상" match.
+_PERSONA_VOICES: list[tuple[str, list[str]]] = [
+    (
+        "잡화상",
+        [
+            "또 왔어? 살 거면 사고, 구경만 할 거면 빨리 비켜. 시간이 금이라구.",
+            "할인? 농담이지. 이 가격이면 이미 손해야. 더 깎으면 내가 너한테 빵을 받아야 해.",
+            "신용? 그딴 건 너네 부모님 댁에서나 통해. 여긴 현금만 받아.",
+            "가게 이름 걸고 진품이야. 단, 환불 없어. 사기 전에 다섯 번 봐.",
+            "오든지 말든지. 가게는 어차피 열려 있어. 단, 빈손으로 오면 알지?",
+        ],
+    ),
+    (
+        "탐정",
+        [
+            "사실부터 정리하지. 추정은 보류. 1번 — 문은 잠겨 있었다. 2번 — 창문도 안에서. 더 묻지.",
+            "두 진술이 같은 시각, 다른 위치를 보고. 모순. 가장 약한 거짓말이다.",
+            "유리 조각이 안쪽으로 떨어졌군. 깬 건 밖이 아니라 안. 범인은 이 방에 있던 사람이다.",
+            "당신을 의심하는 게 아니다. 당신의 진술과 증거가 어긋나는 부분을 의심하는 거다.",
+            "재미있는 사건이군. 모순이 세 군데, 모두 같은 인물 주변. 한 시간 더 보면 알 수 있다.",
+            "탐정이다. 헛소리는 나중에. 사건은 지금.",
+        ],
+    ),
+    (
+        "펭귄",
+        [
+            "어, 안녕! 미끄럼틀처럼 빙판 타고 오는 길이야. 너도 같이 미끄러져 볼래?",
+            "햇볕 좋다. 한 시간만 더 누워있을래. 너 지금 햇볕 자리 가리고 있어.",
+            "오늘은 친구들이랑 물고기 잡으러 갈 거야. 같이 갈래?",
+            "동굴이 따뜻해. 발자국 소리 듣는 게 좋아. 너도 와서 들어볼래?",
+        ],
+    ),
+    (
+        "물고기",
+        [
+            "파도 따라 흘러가는 중. 너도 같이 헤엄칠래?",
+            "어이쿠! 저… 저 큰 분이 누구신지… 죄송합니다, 길을 잘못 들었나 봐요.",
+            "산호초 사이가 가장 안전해. 큰 그림자 보이면 일단 숨어.",
+            "오늘은 새 친구를 사귀었어. 빛깔이 정말 예뻐.",
+        ],
+    ),
+    (
+        "기사",
+        [
+            "내 검은 흔들리지 않는다. 너의 의문도 마찬가지여야 한다.",
+            "두려워하지 않아요, 용이여. 너의 불꽃은 무서워하지만, 내 검은 너를 이길 거다.",
+            "명예는 가진 자의 것이 아니라, 끝까지 지키는 자의 것이다.",
+            "이 길은 내가 막아선다. 한 발도 물러서지 않을 것이다.",
+        ],
+    ),
+]
+
+
+def _select_voice(system: str | None) -> list[str] | None:
+    if not system:
+        return None
+    for keyword, lines in _PERSONA_VOICES:
+        if keyword in system:
+            return lines
+    return None
+
+
+def _pick(lines: list[str], prompt: str) -> str:
+    # Deterministic but spread: same prompt → same line, different
+    # prompts → different lines.
+    return lines[hash(prompt) % len(lines)]
+
+
 class StubLLMClient:
     model_id = "stub-deterministic-1"
 
     def _format_text(self, prompt: str, params: GenerationParams) -> str:
+        voice = _select_voice(params.system)
+        if voice is not None:
+            return _pick(voice, prompt)
+        # Fallback — original echo behavior, useful for debugging
+        # and for tests that introspect stub framing.
         return (
             f"[stub:{self.model_id}] received {len(prompt)} chars"
             + (f" with system={len(params.system)} chars" if params.system else "")
