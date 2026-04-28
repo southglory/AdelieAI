@@ -1,0 +1,20 @@
+{
+  "model_id": "qwen-roleplay-v2-gguf",
+  "base_model": "models/upstream/Qwen2.5-7B-Instruct",
+  "adapter_source": "models/ours/qwen-roleplay-v2",
+  "kind": "merged-quantized",
+  "quantization": {
+    "method": "gguf",
+    "type": "q4_k_m",
+    "tool": "llama.cpp b6064 (convert_hf_to_gguf.py) + llama-cpp-python (quantize)"
+  },
+  "files": {
+    "quant_gguf": "qwen-roleplay-v2.q4_k_m.gguf",
+    "fp16_size_bytes": 15237853248,
+    "quant_size_bytes": 4683073600,
+    "compression_ratio": 3.25
+  },
+  "produced_by": "differentia-llm experiments/06_gguf_export/run.py",
+  "license": "apache-2.0",
+  "update_policy": "diverged"
+}
