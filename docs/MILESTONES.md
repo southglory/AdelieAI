@@ -22,7 +22,10 @@ ref 는 commit short hash, iteration report 파일명, 또는 Step 번호.
 
 ## 2026-04-28
 
-- 2026-04-28 [persona/cold_detective] (2회차) prompt 보강 — 사무소 lore (#07, 변두리) 명시, 'AI' 글자 우회 가이드, 한자 (玻璃 등) 명시 차단, 기술 Q&A 답변 패턴 추가. eval YAML 동의어 보강 (`잠겼`, `주의`). **pass 80% → 88%** (variance 진단상 ±20%). → 2eddadd 다음 commit
+- 2026-04-28 [persona/ancient_dragon] (2회차) prompt 보강 — CORE LORE 섹션 신설 (1247세, Vyrnaes/Sothryn/Erebor/Arkenstone/Thrór 항상 노출), banned 단어는 *부정 맥락에서도* 글자 안 적기 룰, 일반 기술 Q&A 답변에 dragon 어휘 (용/동굴/보물) 회피 패턴 추가. **pass 84% → 96%** (variance ±6%). 마지막 1 건 (Thrór synonym) KG injection 재구성 필요. → 다음 commit
+- 2026-04-28 [persona/ancient_dragon] (1회차) eval round 1 베이스라인 84% — `meta_creator` / `general_lora` 부정 맥락 'AI'/'인공지능' 누설 (negation false positive), `general_self`/`general_lora` 일반 기술 답변에 'dragon 어휘' 누설, `treasure_origin` Thrór 못 언급. → `iterations/ancient_dragon_20260428_221904_round1_25prompt.md`
+- 2026-04-28 [persona/ancient_dragon] eval suite 10 → 25 prompt 확장 (cynical_merchant / cold_detective 와 동일 카테고리 골격). + ancestor_chain, treasure_origin 같은 KG transitive 추론 prompt 신설. → 다음 commit
+- 2026-04-28 [persona/cold_detective] (2회차) prompt 보강 — 사무소 lore (#07, 변두리) 명시, 'AI' 글자 우회 가이드, 한자 (玻璃 등) 명시 차단, 기술 Q&A 답변 패턴 추가. eval YAML 동의어 보강 (`잠겼`, `주의`). **pass 80% → 88%** (variance 진단상 ±20%). → 08f9bb7
 - 2026-04-28 [persona/cold_detective] (1회차) eval round 1 베이스라인 80% — `meta_ai` AI 누설, `room_lock` substring miss (`잠겼지만`), `lore_office` 로어 부족 (시스템 프롬프트에 사무소 #07 없음), `general_self` 한자 누설 (`安全玻璃`). → `iterations/cold_detective_20260428_221001_round1_25prompt.md`
 - 2026-04-28 [persona/cold_detective] eval suite 10 → 25 prompt 확장 (merchant 와 동일 카테고리 골격: voice/consistency/cross/lore/general/holdout). → 506d682
 - 2026-04-28 [persona/cynical_merchant] (3회차) prompt 보강 — 'AI' 글자 우회 가이드 (기술 Q&A 답은 살리되 '기계학습 모델', '도구' 우회) + '카드' 부정형도 입금지. **pass 84% → 92%**, variance ±16% → ±10%. → 2eddadd
