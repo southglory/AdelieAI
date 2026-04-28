@@ -169,3 +169,25 @@ scripts/eval_iterate.py --persona cynical_merchant
 - [`behavioral_test_suite.md`](behavioral_test_suite.md) — pass/fail 규칙
 - [`system_prompt_engineering.md`](system_prompt_engineering.md) — Generate phase 의 도구
 - [`adelie_pipeline.md`](../adelie_pipeline.md) — 전체 평가 파이프라인의 위치
+
+## 참조 (외부 OSS / 공개 논문)
+
+EvalGardener 는 다음 시스템들의 *부분* 을 차용·확장 — 모두 **오픈 소스 또는 공개 논문**:
+
+| 시스템 | 출처 | 라이선스 | 우리가 차용한 부분 |
+|---|---|---|---|
+| **DSPy** (Stanford NLP) | [github.com/stanfordnlp/dspy](https://github.com/stanfordnlp/dspy) | Apache 2.0 | 자동 최적화 파이프라인의 모듈식 컴포넌트 분리 |
+| **EvalPlus / HumanEval+** | [github.com/evalplus/evalplus](https://github.com/evalplus/evalplus) | Apache 2.0 | adversarial test 생성 (anti-overfit guard #2 의 영감) |
+| **TextGrad** | [github.com/zou-group/textgrad](https://github.com/zou-group/textgrad) | MIT | natural-language gradient — agent 가 텍스트 변경 제안하는 패턴 |
+| **Constitutional AI** | [arxiv:2212.08073](https://arxiv.org/abs/2212.08073) (Anthropic) | 공개 논문 | self-critique loop — 단, 우리는 *모델 자체* 가 아닌 *eval suite* 를 비평 |
+| **Self-Refine** | [arxiv:2303.17651](https://arxiv.org/abs/2303.17651) + [github.com/madaan/self-refine](https://github.com/madaan/self-refine) | MIT | iterative critique → revise pattern (Generate phase) |
+| **Active Learning** (학계 일반) | Settles (2009) survey 등 | 공개 | "uncertain examples → 라벨링 → 재학습" → 우리는 "fail prompts → pattern 정제 → 재 eval" 로 변형 |
+
+### EvalGardener 의 *novel* 부분
+
+위 시스템들은 *학습* 또는 *프롬프트* 를 진화시킴. **eval suite 자체를 진화시키는** 패턴은 직접 매칭 X. EvalGardener 는 그 갭을 메우는 forward-looking 디자인 — 학계도 산업도 fixed eval set 일색.
+
+향후 학계 트렌드와 합쳐질 가능성:
+- **Auto-eval generation** (올해 등장 시작 — e.g. [LMSys Arena Hard](https://github.com/lm-sys/arena-hard-auto)) 와 결합
+- **Adversarial test generation** (Anthropic Sleeper Agents, OpenAI Red Team) 와 결합
+- 우리 5 anti-overfit 가드 + tactical/strategic 2-tier 분리 자체가 contribution
