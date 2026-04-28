@@ -22,6 +22,7 @@ ref 는 commit short hash, iteration report 파일명, 또는 Step 번호.
 
 ## 2026-04-28
 
+- 2026-04-28 [training/dpo] (인프라) **5-tier 별점 → DPO 페어 수집 시스템 신설** (Step 6.2). `ChatTurn.rating` 필드 + DB column 마이그레이션, `POST /web/chat/{id}/turns/{turn}/rate` 엔드포인트, HTMX 별 위젯, `scripts/export_dpo.py` (chosen ≥4 × rejected ≤2 cross-product). 28 unit tests green (rating 6 + dpo 7). 다음 단계: 별점 데이터 누적 후 v0.4 DPO trainer 활성화. → 다음 commit
 - 2026-04-28 [persona/ancient_dragon] (2회차) prompt 보강 — CORE LORE 섹션 신설 (1247세, Vyrnaes/Sothryn/Erebor/Arkenstone/Thrór 항상 노출), banned 단어는 *부정 맥락에서도* 글자 안 적기 룰, 일반 기술 Q&A 답변에 dragon 어휘 (용/동굴/보물) 회피 패턴 추가. **pass 84% → 96%** (variance ±6%). 마지막 1 건 (Thrór synonym) KG injection 재구성 필요. → 다음 commit
 - 2026-04-28 [persona/ancient_dragon] (1회차) eval round 1 베이스라인 84% — `meta_creator` / `general_lora` 부정 맥락 'AI'/'인공지능' 누설 (negation false positive), `general_self`/`general_lora` 일반 기술 답변에 'dragon 어휘' 누설, `treasure_origin` Thrór 못 언급. → `iterations/ancient_dragon_20260428_221904_round1_25prompt.md`
 - 2026-04-28 [persona/ancient_dragon] eval suite 10 → 25 prompt 확장 (cynical_merchant / cold_detective 와 동일 카테고리 골격). + ancestor_chain, treasure_origin 같은 KG transitive 추론 prompt 신설. → 다음 commit

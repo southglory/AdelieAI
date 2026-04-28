@@ -168,5 +168,34 @@
     white-space: pre-wrap;
     margin: 0;
 }
+
+/* 5-tier rating widget — DPO 데이터 수집 (Step 6.2) */
+.turn .rating {
+    display: flex;
+    gap: 0.15rem;
+    align-items: center;
+    margin-top: 0.4rem;
+    padding-top: 0.35rem;
+    border-top: 1px dashed #cfe7f3;
+    font-size: 0.85em;
+}
+.turn .rating .star {
+    background: transparent;
+    border: 0;
+    padding: 0 2px;
+    font-size: 1.1em;
+    line-height: 1;
+    cursor: pointer;
+    color: #c0c0c0;
+    transition: color 100ms;
+}
+.turn .rating .star:hover { color: #f5a623; }
+.turn .rating .star.filled { color: #f5a623; }
+.turn .rating-label {
+    margin-left: 0.4rem;
+    color: var(--muted);
+    font-size: 0.85em;
+    font-family: ui-monospace, monospace;
+}
 </style>
 {% endblock %}
