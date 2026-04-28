@@ -84,7 +84,7 @@ GGUF q4_k_m 의 voice 보존 검증: [`differentia-llm/experiments/06_gguf_expor
 - [ ] **distillation 모델 서빙** — 1.5B distilled 모델 서빙 (v0.3)
 - [ ] **여러 모델 동시 mount** — `/health` 가 multiple LLMs 보고
 
-## 함정
+## Pitfalls (함정)
 
 - **`MODEL_PATH` 가 `.gguf` 아니면 디렉터리 검사 + safetensors 존재 검사** — `_has_weights()` 의 책임. MANIFEST.json 만 있고 weights 없으면 stub fallback.
 - **TransformersClient 의 `dtype=bfloat16`** — RTX 3090 같은 ampere+ GPU 에서 안전. 옛 GPU 는 fp16 으로 폴백.

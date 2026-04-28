@@ -98,7 +98,7 @@ PYTHONUTF8=1 .venv/Scripts/python -X utf8 \
 - [ ] **v0.5**: 멀티 GPU 학습 (현재는 단일 RTX 3090)
 - [ ] **v0.6**: 도메인 vertical (`qwen-erp-advisor-v1` 등)
 
-## 함정
+## Pitfalls (함정)
 
 - **5 epochs = 과적합** — v1 의 함정. 60-120 페어에서 4 epochs 가 sweet spot.
 - **단일 register 학습 → 일반 답변 깨짐** — v1 (역할극만 60) 의 함정. v2 (60+60 mix) 가 회복. *반드시 일반 페어 같이 학습*.
