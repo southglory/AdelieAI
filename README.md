@@ -72,6 +72,10 @@ AdelieAI ships:
 - **LangGraph 4-node agent** so personas reason in steps (planner → retriever → reasoner → reporter)
 - **TRL + PEFT LoRA training** with reproducibility manifest (`recipe.md` + `MANIFEST.json`)
 - **Adapter comparison harness** with LLM-as-judge scoring
+- **EvalGardener** — agent-in-the-loop self-improving behavioral test suite (`docs/eval/methods/iteration_loop.md`); per-round markdown audit trail under `docs/eval/iterations/`
+- **3-tier rating + dismiss → DPO export** — one-click feedback under each turn (👍 good · ➖ fine · 👎 bad · ⊘ dismiss); `scripts/export_dpo.py` harvests `(chosen, rejected)` JSONL pairs from divergent ratings (RLHF-shaped, not 5-star reviewer)
+- **`/web/metrics` dashboard** — per-persona activity rollup (turns / tokens / avg latency / last activity) on top of the chat log
+- **Improvement timeline** — `docs/MILESTONES.md` records every decision (and N-th return to the same area), so the *why* survives across sessions
 - **From-scratch nanoGPT** for the curious — same architecture family as Qwen2 (RMSNorm + RoPE + SwiGLU)
 - **HTMX + Jinja2 console** so you can drive everything from a browser
 
@@ -89,8 +93,11 @@ Three Korean role-play personas (penguin / fish / knight) ship out of the box. C
 | [`04_docs_unavailable.png`](docs/screenshots/04_docs_unavailable.png) | Graceful fallback when no embedder is mounted |
 | [`05_health.png`](docs/screenshots/05_health.png) | `/health` JSON output |
 | [`06_swagger.png`](docs/screenshots/06_swagger.png) | Swagger UI at `/docs` |
+| [`30_rating_widget.png`](docs/screenshots/30_rating_widget.png) | **3-tier rating + dismiss** under each assistant turn — the one-click DPO data harvester (good · fine · bad · dismiss). Header badge surfaces aggregate counts + harvested DPO pair count |
+| [`31_personas_with_dpo.png`](docs/screenshots/31_personas_with_dpo.png) | Gallery cards now expose per-persona rating rollup + **DPO N** badge — quick read on which voice has accumulated training-quality preference data |
+| [`32_metrics_dashboard.png`](docs/screenshots/32_metrics_dashboard.png) | `/web/metrics` — per-persona activity rollup (turns / tokens out / avg latency / last activity). Built from `chat_turns`; complementary to the agentic-flow event log under `/web/sessions` |
 
-> Regenerate any time with `scripts/capture_screenshots.py` — a Playwright walker over the live console.
+> Regenerate any time with `scripts/capture_screenshots.py` (legacy gallery + chat) or `scripts/capture_step6_screenshots.py` (rating widget + DPO badges + metrics) — Playwright walkers that seed via HTTP and snap PNGs against a running console.
 
 ## Persona pack format
 
