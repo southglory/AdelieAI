@@ -22,7 +22,9 @@ ref 는 commit short hash, iteration report 파일명, 또는 Step 번호.
 
 ## 2026-04-28
 
-- 2026-04-28 [persona/cold_detective] eval suite 10 → 25 prompt 확장 (merchant 와 동일 카테고리 골격: voice/consistency/cross/lore/general/holdout). → Step 6.1.B
+- 2026-04-28 [persona/cold_detective] (2회차) prompt 보강 — 사무소 lore (#07, 변두리) 명시, 'AI' 글자 우회 가이드, 한자 (玻璃 등) 명시 차단, 기술 Q&A 답변 패턴 추가. eval YAML 동의어 보강 (`잠겼`, `주의`). **pass 80% → 88%** (variance 진단상 ±20%). → 2eddadd 다음 commit
+- 2026-04-28 [persona/cold_detective] (1회차) eval round 1 베이스라인 80% — `meta_ai` AI 누설, `room_lock` substring miss (`잠겼지만`), `lore_office` 로어 부족 (시스템 프롬프트에 사무소 #07 없음), `general_self` 한자 누설 (`安全玻璃`). → `iterations/cold_detective_20260428_221001_round1_25prompt.md`
+- 2026-04-28 [persona/cold_detective] eval suite 10 → 25 prompt 확장 (merchant 와 동일 카테고리 골격: voice/consistency/cross/lore/general/holdout). → 506d682
 - 2026-04-28 [persona/cynical_merchant] (3회차) prompt 보강 — 'AI' 글자 우회 가이드 (기술 Q&A 답은 살리되 '기계학습 모델', '도구' 우회) + '카드' 부정형도 입금지. **pass 84% → 92%**, variance ±16% → ±10%. → 2eddadd
 - 2026-04-28 [eval/iteration] EvalGardener round 4 — banned_genuine_fail 3 건 중 2 건 차단 (general_rag, general_lora). 1 건 (lore_payment) 잔존 → 학습 페어 보강 후보. → `iterations/cynical_merchant_20260428_220138_round4_prompt_strengthen.md`
 - 2026-04-28 [eval] cynical_merchant suite 10 → 25 prompt (round 2). EvalGardener 첫 라운드 axis 추천 (`test_pool_expansion`) 직접 실행. cross_persona / lore_consistency / general_qa / adversarial_holdout 4 카테고리 신설. → 5d6d31d
