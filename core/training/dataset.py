@@ -348,3 +348,131 @@ def dataset_stats(pairs: list[dict[str, str]] | None = None) -> dict:
         "user_chars_max": max(user_lens, default=0),
         "assistant_chars_max": max(assistant_lens, default=0),
     }
+
+
+# === Per-persona LoRA pipeline (Step 6.1) ===
+#
+# Each persona may ship its own dialogue_pairs.jsonl with voice-specific
+# pairs that don't belong in the global ROLEPLAY_PAIRS pool. The trainer
+# can target a single persona by mixing the persona's pairs with
+# GENERAL_PAIRS — same 50/50 lesson from v1→v2 (one register at training
+# breaks the other at inference).
+#
+# Path resolution: `personas/{persona_id}/dialogue_pairs.jsonl`
+# relative to the AdelieAI repo root (the parent of core/).
+
+import json as _json
+from pathlib import Path as _Path
+
+
+def _adelie_root() -> _Path:
+    """Return the AdelieAI repo root regardless of CWD."""
+    # this file lives at core/training/dataset.py — parents[2] is the repo root
+    return _Path(__file__).resolve().parents[2]
+
+
+def load_persona_pairs(persona_id: str) -> list[dict[str, str]]:
+    """Load `personas/{persona_id}/dialogue_pairs.jsonl`.
+
+    Each line must be a JSON object with at least 'user' and 'assistant'
+    string fields. Lines starting with example placeholder text (the
+    template's `<예: ...>` markers) are skipped so a freshly-cloned
+    template doesn't contaminate training.
+    """
+    path = _adelie_root() / "personas" / persona_id / "dialogue_pairs.jsonl"
+    if not path.exists():
+        raise FileNotFoundError(f"persona pairs not found: {path}")
+
+    pairs: list[dict[str, str]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        try:
+            row = _json.loads(line)
+        except _json.JSONDecodeError:
+            continue
+        u, a = row.get("user", ""), row.get("assistant", "")
+        if not isinstance(u, str) or not isinstance(a, str):
+            continue
+        # Skip template placeholder lines like {"user": "<예: ...>", "assistant": "<...>"}
+        if u.startswith("<") and u.endswith(">"):
+            continue
+        if not u.strip() or not a.strip():
+            continue
+        pairs.append({"user": u, "assistant": a})
+    return pairs
+
+
+def split_train_val(
+    pairs: list[dict[str, str]],
+    val_ratio: float = 0.2,
+    seed: int = 13,
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    """Deterministic shuffle + split. seed=13 is arbitrary but fixed
+    so re-runs produce the same val set.
+
+    Falls back to "all train, empty val" when the input is too small
+    to make a meaningful val split (≤ 5 pairs).
+    """
+    if len(pairs) <= 5:
+        return list(pairs), []
+    import random
+    rng = random.Random(seed)
+    shuffled = list(pairs)
+    rng.shuffle(shuffled)
+    n_val = max(1, int(round(len(shuffled) * val_ratio)))
+    return shuffled[n_val:], shuffled[:n_val]
+
+
+def build_persona_dataset(
+    persona_id: str,
+    *,
+    persona_system_prompt: str | None = None,
+    include_general: bool = True,
+    val_ratio: float = 0.2,
+    seed: int = 13,
+):
+    """Build (train_ds, val_ds) HuggingFace Datasets for a single persona.
+
+    The persona's pairs are wrapped with the persona-specific system
+    prompt (if provided) — this is more targeted than ROLEPLAY_SYSTEM
+    so the resulting LoRA learns *that persona's* voice, not generic
+    role-play. GENERAL_PAIRS are appended unchanged (with GENERAL_SYSTEM)
+    to preserve generalization.
+
+    Persona pairs and general pairs are split independently with the
+    same val_ratio so the val set is stratified.
+    """
+    from datasets import Dataset
+
+    persona_pairs = load_persona_pairs(persona_id)
+    if not persona_pairs:
+        raise ValueError(f"no usable pairs for persona '{persona_id}'")
+
+    persona_system = persona_system_prompt or ROLEPLAY_SYSTEM
+
+    persona_train, persona_val = split_train_val(persona_pairs, val_ratio, seed)
+
+    if include_general:
+        gen_train, gen_val = split_train_val(GENERAL_PAIRS, val_ratio, seed)
+    else:
+        gen_train, gen_val = [], []
+
+    def _wrap(pairs, system):
+        return [
+            {"messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": p["user"]},
+                {"role": "assistant", "content": p["assistant"]},
+            ]}
+            for p in pairs
+        ]
+
+    train_rows = _wrap(persona_train, persona_system) + _wrap(gen_train, GENERAL_SYSTEM)
+    val_rows = _wrap(persona_val, persona_system) + _wrap(gen_val, GENERAL_SYSTEM)
+
+    return (
+        Dataset.from_list(train_rows),
+        Dataset.from_list(val_rows) if val_rows else None,
+    )
