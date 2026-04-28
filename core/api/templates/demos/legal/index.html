@@ -6,13 +6,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
-/* === Full-bleed override === */
+/* === Full-bleed demos break out of base.html's 1100px shell ===
+   We null body constraints for demo pages and re-center the nav
+   within its own 1100px container. */
+body { max-width: none !important; padding: 0 !important; }
+body > nav { max-width: 1100px; margin: 0 auto; padding: 0.6rem 1rem; }
+
 .office-stage {
     position: relative;
-    width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-top: -1rem;
-    margin-bottom: -1rem;
+    width: 100%;
     min-height: calc(100vh - 80px);
     color: #d4d0c8;
     font-family: "Courier Prime", "Courier New", monospace;
@@ -144,6 +146,71 @@
     gap: 1.4rem;
     margin-top: 2rem;
     position: relative;
+}
+
+/* Case summary — manila folder feel sitting at the top of the board.
+   Visually heavier than the other memos so it reads as "the brief". */
+.case-summary {
+    position: relative;
+    padding: 1.1rem 1.2rem 1rem;
+    background:
+        linear-gradient(180deg, #d8b271 0%, #c89d5a 100%);
+    color: #2a1f10;
+    border-radius: 2px;
+    box-shadow:
+        3px 5px 10px rgba(0,0,0,0.55),
+        inset 0 0 24px rgba(120, 80, 30, 0.20);
+    transform: rotate(-0.3deg);
+}
+.case-summary::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #b53b3b 0%, #6b1414 70%, #380808 100%);
+    box-shadow:
+        0 2px 4px rgba(0,0,0,0.6),
+        inset -1px -1px 2px rgba(0,0,0,0.4);
+}
+.case-summary .stamp {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.8rem;
+    padding: 3px 8px;
+    border: 2px solid #8b1414;
+    color: #8b1414;
+    font-family: "Special Elite", monospace;
+    font-size: 0.62rem;
+    letter-spacing: 2px;
+    transform: rotate(7deg);
+    background: rgba(255, 240, 210, 0.4);
+    opacity: 0.85;
+}
+.case-summary .case-id {
+    font-family: "Special Elite", monospace;
+    font-size: 0.95rem;
+    color: #4a2912;
+    letter-spacing: 1.5px;
+    margin-bottom: 0.45rem;
+    border-bottom: 1px dashed rgba(74, 41, 18, 0.45);
+    padding-bottom: 0.3rem;
+    padding-right: 5rem;  /* leave room for the stamp */
+}
+.case-summary .field {
+    font-family: "Courier Prime", monospace;
+    font-size: 0.82rem;
+    color: #2a1f10;
+    line-height: 1.55;
+}
+.case-summary .field .key {
+    display: inline-block;
+    width: 64px;
+    color: #6b4226;
+    font-weight: 700;
 }
 
 .memo {
@@ -526,6 +593,18 @@
             <div class="memo-stack">
                 <div class="string-1"></div>
                 <div class="string-2"></div>
+
+                <div class="case-summary">
+                    <span class="stamp">CONFIDENTIAL</span>
+                    <div class="case-id">CASE #07 · 살인 (밀실)</div>
+                    <div class="field"><span class="key">분류</span> 1급 살인 · 흉기는 둔기 추정</div>
+                    <div class="field"><span class="key">발생</span> 23:30 PM 어제, 변경 마을 뒷골목 셋방</div>
+                    <div class="field"><span class="key">피해자</span> 신원 미상 (40대 남성, 등잔 무역상)</div>
+                    <div class="field"><span class="key">사인</span> 두부 외상 + 추락 (검시 진행 중)</div>
+                    <div class="field"><span class="key">현장</span> 안에서 잠긴 문 + 안에서 잠긴 창문 (밀실)</div>
+                    <div class="field"><span class="key">용의</span> 그 시각 가게에 있던 셋 중 한 명. 진술 간 시각·위치 모순</div>
+                    <div class="field"><span class="key">단계</span> 증거 수집 완료 → <strong>현재: 진술 비교</strong> → 체포</div>
+                </div>
 
                 <div class="memo">
                     <span class="pin"></span>

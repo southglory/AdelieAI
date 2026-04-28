@@ -71,6 +71,10 @@ def test_legal_demo_has_noir_chrome(client: TestClient) -> None:
     assert "CASE FILE #07" in body  # case stamp header
     assert "office-stage" in body  # full-bleed scene container
     assert "case-board" in body  # cork board panel
+    assert "case-summary" in body  # case brief card on top of board
+    assert "살인" in body  # case classification — locked-room murder
+    assert "밀실" in body  # explicit nature of the case
+    assert "CONFIDENTIAL" in body  # stamp
     assert "transcript" in body  # interrogation paper
     assert "/web/chat/cold_detective/messages" in body  # backend wire
     assert "Special+Elite" in body  # typewriter font import

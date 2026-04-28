@@ -6,13 +6,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 
 <style>
-/* === Full-bleed override of the 1100px shell base.html imposes === */
+/* === Full-bleed demos break out of base.html's 1100px shell ===
+   Rather than fight the parent with negative-margin tricks, we
+   simply null the body constraints for demo pages and re-center
+   the nav within its own 1100px container. */
+body { max-width: none !important; padding: 0 !important; }
+body > nav { max-width: 1100px; margin: 0 auto; padding: 0.6rem 1rem; }
+
 .shop-stage {
     position: relative;
-    width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-top: -1rem;
-    margin-bottom: -1rem;
+    width: 100%;
     min-height: calc(100vh - 80px);
     color: #f4e4c1;
     font-family: "VT323", monospace;
