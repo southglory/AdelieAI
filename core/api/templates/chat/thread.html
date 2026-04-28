@@ -7,6 +7,16 @@
         {{ persona.base_model_hint.split('/')[-1] }}{% if persona.adapter_hint %} + {{ persona.adapter_hint }}{% endif %}
     </span>
     <span class="grow"></span>
+    {% if stats and stats.assistant_total %}
+    <span class="header-rating-summary"
+          title="DPO 데이터 수집 — good × bad 페어 (현재 {{ stats.dpo_pairs }}건)">
+        <span class="hrs-good">👍 {{ stats.good }}</span>
+        <span class="hrs-fine">➖ {{ stats.fine }}</span>
+        <span class="hrs-bad">👎 {{ stats.bad }}</span>
+        {% if stats.dismiss %}<span class="hrs-dismiss">⊘ {{ stats.dismiss }}</span>{% endif %}
+        <span class="hrs-pairs">DPO {{ stats.dpo_pairs }}</span>
+    </span>
+    {% endif %}
     <form action="/web/chat/{{ persona.persona_id }}/reset" method="post" style="display: inline;">
         <button type="submit" class="danger" title="Clear all turns with this persona">reset</button>
     </form>
@@ -70,6 +80,30 @@
 .chat-header .back:hover { text-decoration: underline; }
 .chat-header .grow { flex: 1; }
 .chat-header button.danger { color: #b02a37; }
+.header-rating-summary {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.78em;
+    font-family: ui-monospace, monospace;
+    color: #555;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid #cfe7f3;
+    border-radius: 12px;
+    background: #f7fbff;
+}
+.header-rating-summary .hrs-good    { color: #2f5e1f; }
+.header-rating-summary .hrs-fine    { color: #555; }
+.header-rating-summary .hrs-bad     { color: #8a2424; }
+.header-rating-summary .hrs-dismiss { color: #6b5a1d; }
+.header-rating-summary .hrs-pairs {
+    background: #e7f0ff;
+    border: 1px solid #c7d9f5;
+    border-radius: 6px;
+    padding: 0 0.4rem;
+    color: #0d4eaa;
+    font-weight: 600;
+}
 
 .chat-layout {
     display: grid;

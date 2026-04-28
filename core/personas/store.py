@@ -49,6 +49,25 @@ class ChatTurn:
     rating: int | None = None
 
 
+@dataclass(frozen=True)
+class RatingStats:
+    """Aggregate of one persona's assistant-turn ratings — surfaced in
+    the gallery + chat header to motivate further rating + show DPO yield."""
+
+    good: int
+    fine: int
+    bad: int
+    dismiss: int
+    assistant_total: int  # all assistant turns (rated + unrated)
+    dpo_pairs: int  # count of (chosen, rejected) pairs harvestable now
+
+    @property
+    def rated_total(self) -> int:
+        """Counts that carry a preference signal (good + fine + bad).
+        Excludes dismiss (explicit non-evaluation) and unrated."""
+        return self.good + self.fine + self.bad
+
+
 @runtime_checkable
 class ChatStore(Protocol):
     async def list_turns(
@@ -64,6 +83,10 @@ class ChatStore(Protocol):
     async def rate(
         self, turn_id: int, rating: int | None
     ) -> ChatTurn | None: ...
+
+    async def rating_stats(
+        self, persona_id: str, user_id: str
+    ) -> RatingStats: ...
 
 
 class InMemoryChatStore:
@@ -131,6 +154,46 @@ class InMemoryChatStore:
                 self._turns[i] = updated
                 return updated
         return None
+
+    async def rating_stats(
+        self, persona_id: str, user_id: str
+    ) -> "RatingStats":
+        turns = await self.list_turns(persona_id, user_id)
+        return _compute_rating_stats(turns)
+
+
+def _compute_rating_stats(turns: list[ChatTurn]) -> "RatingStats":
+    """Shared by InMemory + Sql implementations — count by rating value
+    and call into core.personas.dpo for the pair count.
+
+    Imported lazily to break the circular dep (dpo.py imports ChatTurn)."""
+    from core.personas.dpo import harvest_pairs
+
+    good = fine = bad = dismiss = 0
+    assistant_total = 0
+    for t in turns:
+        if t.role != "assistant":
+            continue
+        assistant_total += 1
+        if t.rating is None:
+            continue
+        if t.rating == 3:
+            good += 1
+        elif t.rating == 2:
+            fine += 1
+        elif t.rating == 1:
+            bad += 1
+        elif t.rating == 0:
+            dismiss += 1
+    pair_count = len(harvest_pairs(turns))
+    return RatingStats(
+        good=good,
+        fine=fine,
+        bad=bad,
+        dismiss=dismiss,
+        assistant_total=assistant_total,
+        dpo_pairs=pair_count,
+    )
 
 
 class _Base(DeclarativeBase):
@@ -268,3 +331,11 @@ class SqlChatStore:
             await session.commit()
             await session.refresh(row)
             return row.to_dataclass()
+
+    async def rating_stats(
+        self, persona_id: str, user_id: str
+    ) -> "RatingStats":
+        # Single fetch — small per-(persona, user) tables, cheaper than
+        # 2 SQL aggregates + a separate dpo scan.
+        turns = await self.list_turns(persona_id, user_id)
+        return _compute_rating_stats(turns)

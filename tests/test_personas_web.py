@@ -258,3 +258,139 @@ def test_rate_unknown_persona_404(client: TestClient) -> None:
         data={"rating": 3},
     )
     assert r.status_code == 404
+
+
+# === Rating summary stats surface in UI (Step 6.2 UX) ===
+
+
+def test_rating_summary_hidden_when_no_assistant_turns(client: TestClient) -> None:
+    """Empty persona → no rating-summary noise on the gallery card."""
+    r = client.get("/web/personas")
+    assert r.status_code == 200
+    assert 'class="rating-summary"' not in r.text
+
+
+def test_rating_summary_appears_after_first_rating(client: TestClient) -> None:
+    turn_id = _post_msg_get_assistant_id(client, "penguin_relaxed", "rate me")
+    client.post(
+        f"/web/chat/penguin_relaxed/turns/{turn_id}/rate",
+        data={"rating": 3},
+    )
+    page = client.get("/web/personas")
+    # Card now shows the summary
+    assert 'class="rating-summary"' in page.text
+    assert "👍 1" in page.text
+    assert "👎 0" in page.text
+    # No DPO pair yet (need both good and bad on same prompt)
+    assert "DPO 0" in page.text
+
+
+def test_dpo_pair_count_surfaces_after_good_and_bad() -> None:
+    # Direct store injection — StubLLMClient is deterministic per prompt
+    # (same prompt → identical reply → harvest dedup), so we manufacture
+    # two distinct assistant replies for the same prompt to exercise the
+    # gallery + chat-thread rendering of the DPO pair count.
+    import asyncio
+    from datetime import datetime, timezone
+
+    from core.api.app import build_app
+    from core.personas.store import ChatTurn, InMemoryChatStore
+    from core.serving.stub_client import StubLLMClient
+    from core.session.store_memory import InMemorySessionStore
+
+    chat_store = InMemoryChatStore()
+
+    async def seed() -> None:
+        for role, content, rating in [
+            ("user", "어이", None),
+            ("assistant", "또 왔어? 살 거면 사라.", 3),  # good
+            ("user", "어이", None),
+            ("assistant", "흠, 뭘 원해? 그냥 비켜.", 1),  # bad — distinct text
+        ]:
+            await chat_store.append(
+                ChatTurn(
+                    id=None,
+                    persona_id="cynical_merchant",
+                    user_id="demo",
+                    role=role,
+                    content=content,
+                    tokens_in=None,
+                    tokens_out=None,
+                    latency_ms=None,
+                    created_at=datetime(2026, 4, 28, tzinfo=timezone.utc),
+                    rating=rating,
+                )
+            )
+    asyncio.run(seed())
+
+    app = build_app(
+        store=InMemorySessionStore(),
+        llm=StubLLMClient(),
+        chat_store=chat_store,
+    )
+    c = TestClient(app)
+    gallery = c.get("/web/personas")
+    assert "DPO 1" in gallery.text
+
+    thread = c.get("/web/chat/cynical_merchant")
+    assert "header-rating-summary" in thread.text
+    assert "DPO 1" in thread.text
+
+
+def test_dismiss_surfaces_separately_in_summary(client: TestClient) -> None:
+    turn_id = _post_msg_get_assistant_id(client, "penguin_relaxed", "skip")
+    client.post(
+        f"/web/chat/penguin_relaxed/turns/{turn_id}/rate", data={"rating": 0}
+    )
+    page = client.get("/web/personas")
+    assert "⊘ 1" in page.text
+    # dismiss is NOT counted as bad
+    assert "👎 0" in page.text
+
+
+def test_rating_stats_dataclass_via_store_directly() -> None:
+    """RatingStats independent of HTTP — test the store path directly."""
+    import asyncio
+
+    from core.personas.store import InMemoryChatStore, ChatTurn
+    from datetime import datetime, timezone
+
+    async def run() -> None:
+        store = InMemoryChatStore()
+        for role, content, rating in [
+            ("user", "Q", None),
+            ("assistant", "A1", 3),  # good
+            ("user", "Q", None),
+            ("assistant", "A2", 2),  # fine
+            ("user", "Q", None),
+            ("assistant", "A3", 1),  # bad
+            ("user", "Q", None),
+            ("assistant", "A4", 0),  # dismiss
+            ("user", "Q", None),
+            ("assistant", "A5", None),  # no rating
+        ]:
+            await store.append(
+                ChatTurn(
+                    id=None,
+                    persona_id="p",
+                    user_id="u",
+                    role=role,
+                    content=content,
+                    tokens_in=None,
+                    tokens_out=None,
+                    latency_ms=None,
+                    created_at=datetime(2026, 4, 28, tzinfo=timezone.utc),
+                    rating=rating,
+                )
+            )
+        stats = await store.rating_stats("p", "u")
+        assert stats.good == 1
+        assert stats.fine == 1
+        assert stats.bad == 1
+        assert stats.dismiss == 1
+        assert stats.assistant_total == 5
+        assert stats.rated_total == 3  # excludes dismiss + None
+        # Same prompt "Q" has good (A1) and bad (A3) → 1 DPO pair
+        assert stats.dpo_pairs == 1
+
+    asyncio.run(run())
