@@ -35,9 +35,17 @@ class ChatTurn:
     tokens_out: int | None
     latency_ms: int | None
     created_at: datetime
-    # 5-tier user rating on assistant turns. 1 = bad, 5 = excellent. None
-    # = not rated yet. User-only on assistant rows; user rows stay None.
+    # 3-tier user rating + dismiss on assistant turns:
+    #   None = not interacted (default)
+    #   0    = dismiss (explicitly chose not to evaluate)
+    #   1    = bad
+    #   2    = fine
+    #   3    = good
+    # User-only on assistant rows; user rows stay None.
     # Used to harvest chosen/rejected pairs for DPO (Step 6.2).
+    # Schema note: started as 5-tier (1-5), refactored to 3-tier + dismiss
+    # to match RLHF industry convention and reduce click fatigue. DB column
+    # type unchanged (int|None) — only the value semantics changed.
     rating: int | None = None
 
 

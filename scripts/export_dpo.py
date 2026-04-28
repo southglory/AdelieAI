@@ -14,8 +14,9 @@ Logic:
     `{prompt, chosen, rejected}` pair per (high × low) cross-product.
     Higher rating → chosen, lower → rejected.
 
-    Default thresholds: chosen >= 4, rejected <= 2. Adjust for stricter
-    or more permissive harvesting.
+    Default thresholds: chosen >= 3 (good), rejected <= 1 (bad). Rating
+    semantics: 0=dismiss · 1=bad · 2=fine · 3=good · None=not interacted.
+    `dismiss` and `fine` are both excluded from DPO (no preference signal).
 """
 from __future__ import annotations
 
@@ -43,18 +44,22 @@ class DPOPair:
 def harvest_pairs(
     turns: list[ChatTurn],
     *,
-    chosen_threshold: int = 4,
-    rejected_threshold: int = 2,
+    chosen_threshold: int = 3,
+    rejected_threshold: int = 1,
 ) -> list[DPOPair]:
     """Walk a chronologically ordered list of turns, group assistant
     replies by their preceding user turn (same persona+user), and emit
     chosen/rejected pairs from the rating divergence.
 
+    Default thresholds match 3-tier semantics: chosen ≥ 3 (good),
+    rejected ≤ 1 (bad). Rating 0 (dismiss) and 2 (fine) carry no
+    preference signal — both are *explicitly* excluded.
+
     Notes
     -----
     - We key by (persona_id, user_id, user_text). Two assistants for the
       *same prompt across separate sessions* count if they share user_id.
-    - Unrated turns are skipped.
+    - Unrated (None) turns are skipped — same as dismiss.
     - Identical chosen and rejected text is skipped (e.g., user double-rated).
     """
     by_prompt: dict[tuple[str, str, str], list[ChatTurn]] = defaultdict(list)
@@ -66,14 +71,18 @@ def harvest_pairs(
             pending_user[key] = t.content
         elif t.role == "assistant":
             user_text = pending_user.get(key)
-            if user_text is None or t.rating is None:
+            if user_text is None or t.rating is None or t.rating == 0:
+                # None=not interacted, 0=dismiss — both lack preference signal
                 continue
             by_prompt[(t.persona_id, t.user_id, user_text)].append(t)
 
     pairs: list[DPOPair] = []
     for (persona_id, _, prompt), replies in by_prompt.items():
         highs = [r for r in replies if r.rating is not None and r.rating >= chosen_threshold]
-        lows = [r for r in replies if r.rating is not None and r.rating <= rejected_threshold]
+        lows = [
+            r for r in replies
+            if r.rating is not None and r.rating > 0 and r.rating <= rejected_threshold
+        ]
         for h in highs:
             for low in lows:
                 if h.content == low.content:
@@ -169,8 +178,8 @@ def main() -> int:
         default="data/dpo/pairs.jsonl",
         help="Output JSONL path.",
     )
-    parser.add_argument("--chosen-threshold", type=int, default=4)
-    parser.add_argument("--rejected-threshold", type=int, default=2)
+    parser.add_argument("--chosen-threshold", type=int, default=3)
+    parser.add_argument("--rejected-threshold", type=int, default=1)
     args = parser.parse_args()
     return asyncio.run(main_async(args))
 
