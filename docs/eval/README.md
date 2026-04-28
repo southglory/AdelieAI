@@ -22,6 +22,7 @@ LLM 시스템의 평가는 vision · classical ML · IR · RL 과 *겹치지 않
 - [`domain_mappings.md`](domain_mappings.md) — 다른 영역의 평가 어휘 → LLM 어휘 매핑
 - [`methods/`](methods/) — 메서드 1개당 1 파일. 정의 / 입력 / 출력 / 우리 코드의 어디에 있는가
 - [`adelie_pipeline.md`](adelie_pipeline.md) — AdelieAI 의 평가 파이프라인 자체 문서
+- [`iterations/`](iterations/) — `eval_iterate.py` 가 자동 생성하는 라운드별 보고서 (audit trail). 매 iteration 의 measurement + tactical/strategic 분석 + 다음 라운드 결정점
 
 ## 기여자에게
 
