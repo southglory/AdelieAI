@@ -18,4 +18,14 @@
         <dt>RAG</dt><dd>{{ "on" if p.rag_enabled else "off" }}</dd>
         <dt>turns</dt><dd>{{ counts[p.persona_id] }}</dd>
     </dl>
+    {% set s = stats[p.persona_id] %}
+    {% if s.assistant_total %}
+    <div class="rating-summary" title="DPO 데이터 수집 진행상황 — good × bad 가 페어">
+        <span class="rs-good">👍 {{ s.good }}</span>
+        <span class="rs-fine">➖ {{ s.fine }}</span>
+        <span class="rs-bad">👎 {{ s.bad }}</span>
+        {% if s.dismiss %}<span class="rs-dismiss">⊘ {{ s.dismiss }}</span>{% endif %}
+        <span class="rs-pairs">DPO {{ s.dpo_pairs }}</span>
+    </div>
+    {% endif %}
 </a>

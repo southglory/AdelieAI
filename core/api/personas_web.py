@@ -50,10 +50,14 @@ def build_personas_web_router(
             p.persona_id: await chat_store.turn_count(p.persona_id, uid)
             for p in personas
         }
+        stats = {
+            p.persona_id: await chat_store.rating_stats(p.persona_id, uid)
+            for p in personas
+        }
         return templates.TemplateResponse(
             request,
             "personas/list.html",
-            {"personas": personas, "counts": counts, "user_id": uid},
+            {"personas": personas, "counts": counts, "stats": stats, "user_id": uid},
         )
 
     @router.get(
@@ -71,12 +75,14 @@ def build_personas_web_router(
         if persona is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
         turns = await chat_store.list_turns(persona_id, uid)
+        stats = await chat_store.rating_stats(persona_id, uid)
         return templates.TemplateResponse(
             request,
             "chat/thread.html",
             {
                 "persona": persona,
                 "turns": turns,
+                "stats": stats,
                 "user_id": uid,
             },
         )

@@ -22,6 +22,9 @@ ref 는 commit short hash, iteration report 파일명, 또는 Step 번호.
 
 ## 2026-04-28
 
+- 2026-04-28 [training/dpo] (3회차 — UX 보강) **rating_stats + DPO pair count 갤러리·헤더에 노출**. `RatingStats` dataclass 신설, `core/personas/dpo.py` 분리 (script 와 store 양쪽 사용), `_card.html` + chat header 에 G/F/B/dismiss 카운트 + DPO pair badge. **287/287 tests** (12 신규). 작업 중 root issue 2 건 발견 → 티켓 #62, #63. → 다음 commit
+- 2026-04-28 [serving/stub] (1회차 발견) **StubLLMClient 결정성 root issue** — `hash(prompt)` 로 canned reply 결정 → 같은 prompt 반복 시 항상 같은 답변. 표면 영향: DPO 데이터 수집 *기획 의도가 stub 모드에서 작동 안 함* (harvest dedup 에 걸려 페어 0). 임시 우회: 직접 store 주입 테스트. 영구 fix → ticket #62.
+- 2026-04-28 [storage/perf] (1회차 발견) **rating_stats N+1 on gallery render** — N 페르소나 × `list_turns` 풀스캔. 6 페르소나엔 무시 가능, 100+ 스케일에선 재방문. ticket #63.
 - 2026-04-28 [training/dpo] (2회차 — 즉시 refactor) **5-tier → 3-tier + dismiss**. 사용자가 Claude Code 자체 평가 UI (good/fine/bad/dismiss) 와 비교 후 우월성 판단. RLHF 산업 관례 (Anthropic HH-RLHF, InstructGPT) 가 binary/3-way 인 점, dismiss 축이 *명시적 비평가* 를 분리해주는 점, 5-tier 가 임계 4/2 로 사실상 3-tier 로 collapse 되며 클릭 부담만 늘던 점이 결정적. DB 컬럼 type 그대로 (`int|None`), 의미만 재매핑: `0` dismiss / `1` bad / `2` fine / `3` good / `None` 미상호작용. UI 4 pill 버튼, default thresholds 3/1, dismiss/fine 모두 DPO 에서 명시적 제외. **32 tests green (4 신규 — dismiss 분리, fine 제외, threshold override 등)**. → 다음 commit
 - 2026-04-28 [training/dpo] (1회차) **5-tier 별점 → DPO 페어 수집 시스템 신설** (Step 6.2). `ChatTurn.rating` 필드 + DB column 마이그레이션, `POST /web/chat/{id}/turns/{turn}/rate` 엔드포인트, HTMX 별 위젯, `scripts/export_dpo.py` (chosen ≥4 × rejected ≤2 cross-product). 28 unit tests green (rating 6 + dpo 7). 다음 단계: 별점 데이터 누적 후 v0.4 DPO trainer 활성화. → f88bb97
 - 2026-04-28 [persona/ancient_dragon] (2회차) prompt 보강 — CORE LORE 섹션 신설 (1247세, Vyrnaes/Sothryn/Erebor/Arkenstone/Thrór 항상 노출), banned 단어는 *부정 맥락에서도* 글자 안 적기 룰, 일반 기술 Q&A 답변에 dragon 어휘 (용/동굴/보물) 회피 패턴 추가. **pass 84% → 96%** (variance ±6%). 마지막 1 건 (Thrór synonym) KG injection 재구성 필요. → 다음 commit

@@ -96,5 +96,30 @@
 }
 .persona-card dl.meta dt { color: var(--muted); }
 .persona-card dl.meta dd { margin: 0; font-family: ui-monospace, monospace; }
+
+/* Per-persona rating summary (Step 6.2 UX) */
+.persona-card .rating-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+    padding-top: 0.4rem;
+    border-top: 1px dashed #e6e6e6;
+    font-size: 0.78em;
+    font-family: ui-monospace, monospace;
+}
+.persona-card .rating-summary .rs-good    { color: #2f5e1f; }
+.persona-card .rating-summary .rs-fine    { color: #555; }
+.persona-card .rating-summary .rs-bad     { color: #8a2424; }
+.persona-card .rating-summary .rs-dismiss { color: #6b5a1d; }
+.persona-card .rating-summary .rs-pairs {
+    margin-left: auto;
+    background: #e7f0ff;
+    border: 1px solid #c7d9f5;
+    border-radius: 8px;
+    padding: 0 0.4rem;
+    color: #0d4eaa;
+    font-weight: 600;
+}
 </style>
 {% endblock %}
