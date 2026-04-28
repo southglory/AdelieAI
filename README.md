@@ -8,7 +8,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![tests](https://img.shields.io/badge/tests-200%20passing-brightgreen.svg)](#testing)
+[![tests](https://img.shields.io/badge/tests-209%20passing-brightgreen.svg)](#testing)
 [![Persona Pack v0.1](https://img.shields.io/badge/persona%20pack-v0.1-blueviolet.svg)](docs/PERSONA_PACK.md)
 
 </div>
@@ -48,12 +48,13 @@ Three industry verticals showcase the tier ladder out of the box. Same engine, t
 |---|---|---|---|
 | [`/demo/gaming`](docs/screenshots/21_gaming_live.png) | 💰 `cynical_merchant` | **T2** | RPG shop scene — JRPG dialogue HUD, inventory mock, gold counter, blunt merchant voice |
 | [`/demo/legal`](docs/screenshots/22_legal_live.png) | 🔍 `cold_detective` | **T3** | Noir detective office — cork board with case summary, evidence memos, red string connectors, transcript paper, citation chips, `evidence_search` tool active |
-| `/demo/knowledge` | 🐉 `ancient_dragon` | **T4** | (placeholder — design pass in v0.3 with KG/SPARQL trace) |
+| [`/demo/knowledge`](docs/screenshots/24_knowledge_live.png) | 🐉 `ancient_dragon` | **T4** | Ancient archive — inline-SVG KG with 8 nodes (asserted edges solid, OWL-inferred edges dashed flowing), parchment-scroll dialogue, side-panel SPARQL query + reasoner output ("☑ consistent" + inferred triples), `RdfGraphRetriever` + `StubOWLReasoner` active |
 
 <table>
   <tr>
-    <td width="50%"><a href="docs/screenshots/21_gaming_live.png"><img src="docs/screenshots/21_gaming_live.png" alt="/demo/gaming — JRPG shop with cynical_merchant"/></a></td>
-    <td width="50%"><a href="docs/screenshots/22_legal_live.png"><img src="docs/screenshots/22_legal_live.png" alt="/demo/legal — noir detective office with cold_detective"/></a></td>
+    <td width="33%"><a href="docs/screenshots/21_gaming_live.png"><img src="docs/screenshots/21_gaming_live.png" alt="/demo/gaming — JRPG shop with cynical_merchant"/></a></td>
+    <td width="33%"><a href="docs/screenshots/22_legal_live.png"><img src="docs/screenshots/22_legal_live.png" alt="/demo/legal — noir detective office with cold_detective"/></a></td>
+    <td width="33%"><a href="docs/screenshots/24_knowledge_live.png"><img src="docs/screenshots/24_knowledge_live.png" alt="/demo/knowledge — ancient archive with ancient_dragon"/></a></td>
   </tr>
 </table>
 
@@ -120,7 +121,7 @@ Full spec: [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md). Roadmap to v0.2 adds 
 | **Training** | TRL `SFTTrainer` LoRA, plus a pure-PyTorch nanoGPT for from-scratch experiments |
 | **Logging** | Structured JSON + per-request id propagation |
 | **Quantization** | GGUF q4_k_m via llama-cpp-python; merged adapter → 4.4 GB single file (3.25× smaller) |
-| **Tests** | 200 unit + Playwright E2E walker |
+| **Tests** | 209 unit + Playwright E2E walker |
 
 ## Design principles
 

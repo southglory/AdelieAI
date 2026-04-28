@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from core import __version__
 from core.api.agents import build_router
 from core.api.demos_router import build_demos_router
+from core.retrieval.graph_retriever_stub import RdfGraphRetriever, StubOWLReasoner
 from core.tools import ToolRegistry
 from core.tools.evidence_search import EvidenceSearch
 from core.api.docs import build_docs_router
@@ -305,6 +306,14 @@ def build_app(
     tool_registry = ToolRegistry()
     tool_registry.register(EvidenceSearch())
     app.state.tool_registry = tool_registry
+
+    # T4 — default KG retriever + OWL reasoner. Both are stubs over a
+    # tiny mock dragon-lore corpus (12 base + 4 inferred triples). They
+    # let `_compute_tier` declare "T4: ok + reasoner" so /demo/knowledge
+    # has a working KG stack to visualize. Real rdflib / Fuseki / Stardog
+    # wiring is a future milestone.
+    app.state.graph_retriever = RdfGraphRetriever()
+    app.state.owl_reasoner = StubOWLReasoner()
     app.include_router(
         build_router(app.state.store, app.state.llm, retriever=retriever)
     )

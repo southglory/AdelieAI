@@ -1,1 +1,867 @@
-{% extends "demos/_placeholder.html" %}
+{% extends "base.html" %}
+{% block main %}
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    --stone-deep: #110d08;
+    --stone-base: #1a1812;
+    --stone-warm: #2a261f;
+    --stone-edge: #3d352a;
+    --candle: #f4d795;
+    --candle-deep: #d4a652;
+    --candle-glow: rgba(244, 215, 149, 0.4);
+    --parchment: #f4e8c4;
+    --parchment-aged: #e0d2a8;
+    --ink: #3a2818;
+    --ink-faded: #6a4f30;
+    --scale: #2d5d3a;
+    --scale-deep: #1a3a23;
+}
+
+/* Full-bleed override (same canonical pattern as gaming + legal demos) */
+body { max-width: none !important; padding: 0 !important; }
+body > nav { max-width: 1100px; margin: 0 auto; padding: 0.6rem 1rem; }
+
+.archive-stage {
+    position: relative;
+    width: 100%;
+    min-height: calc(100vh - 80px);
+    color: var(--parchment);
+    font-family: "Cormorant Garamond", "Noto Serif KR", "Nanum Myeongjo", serif;
+    background:
+        radial-gradient(ellipse 60% 40% at 50% 30%, rgba(244, 215, 149, 0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 80% 60% at 30% 80%, rgba(212, 166, 82, 0.06) 0%, transparent 50%),
+        linear-gradient(180deg, var(--stone-base) 0%, var(--stone-deep) 100%);
+    overflow: hidden;
+}
+
+/* Stone texture noise (SVG fractal) */
+.archive-stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' seed='8'/><feColorMatrix values='0 0 0 0 0.16  0 0 0 0 0.13  0 0 0 0 0.08  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    opacity: 0.45;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* Vignette */
+.archive-stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.7) 100%);
+    pointer-events: none;
+    z-index: 99;
+}
+
+/* Floating gold motes */
+.mote {
+    position: absolute;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--candle) 0%, var(--candle-deep) 60%, transparent 100%);
+    filter: blur(0.5px);
+    z-index: 5;
+    animation: drift-up linear infinite;
+}
+.mote:nth-child(1) { left: 15%; top: 95%; animation-duration: 28s; animation-delay:  0s; }
+.mote:nth-child(2) { left: 32%; top: 95%; animation-duration: 32s; animation-delay: -8s; }
+.mote:nth-child(3) { left: 50%; top: 95%; animation-duration: 26s; animation-delay: -14s; width: 5px; height: 5px; }
+.mote:nth-child(4) { left: 68%; top: 95%; animation-duration: 34s; animation-delay: -20s; }
+.mote:nth-child(5) { left: 85%; top: 95%; animation-duration: 30s; animation-delay: -24s; }
+.mote:nth-child(6) { left: 22%; top: 95%; animation-duration: 36s; animation-delay: -4s; width: 3px; height: 3px; }
+.mote:nth-child(7) { left: 75%; top: 95%; animation-duration: 28s; animation-delay: -16s; }
+@keyframes drift-up {
+    0%   { transform: translate(0, 0); opacity: 0; }
+    15%  { opacity: 0.7; }
+    50%  { transform: translate(-30px, -50vh); opacity: 0.9; }
+    85%  { opacity: 0.4; }
+    100% { transform: translate(60px, -100vh); opacity: 0; }
+}
+
+/* === HEADER === */
+.archive-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.6rem 3rem 1.4rem;
+    background: linear-gradient(180deg, rgba(61, 53, 42, 0.4) 0%, rgba(26, 24, 18, 0.2) 100%);
+    border-bottom: 1px solid rgba(244, 215, 149, 0.15);
+    z-index: 10;
+}
+.archive-header::after {
+    content: "";
+    position: absolute;
+    bottom: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--candle-deep) 50%, transparent 100%);
+    opacity: 0.5;
+}
+.archive-title { display: flex; align-items: center; gap: 1.2rem; }
+.archive-title .seal {
+    font-size: 2rem;
+    filter: drop-shadow(0 0 10px var(--candle-glow));
+    animation: candle-flicker 3s ease-in-out infinite;
+}
+@keyframes candle-flicker {
+    0%, 100% { filter: drop-shadow(0 0 10px var(--candle-glow)); }
+    47%      { filter: drop-shadow(0 0  7px rgba(244, 215, 149, 0.30)); }
+    50%      { filter: drop-shadow(0 0 14px rgba(244, 215, 149, 0.55)); }
+    53%      { filter: drop-shadow(0 0  7px rgba(244, 215, 149, 0.30)); }
+}
+.archive-title h1 {
+    font-family: "Cinzel", serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--candle);
+    margin: 0;
+    letter-spacing: 4px;
+    text-shadow: 0 0 14px rgba(244, 215, 149, 0.4);
+}
+.archive-title .sub {
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--ink-faded);
+    margin-left: 0.4rem;
+    letter-spacing: 1px;
+}
+.age-counter {
+    display: flex; align-items: baseline; gap: 0.5rem;
+    padding: 0.55rem 1.2rem;
+    background: rgba(17, 13, 8, 0.6);
+    border: 1px solid rgba(244, 215, 149, 0.2);
+}
+.age-counter .label {
+    font-family: "Cinzel", serif;
+    font-size: 0.65rem;
+    color: var(--ink-faded);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+.age-counter .value {
+    font-family: "Cinzel", serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--candle);
+    letter-spacing: 1px;
+    text-shadow: 0 0 12px rgba(244, 215, 149, 0.4);
+}
+.age-counter .unit {
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--ink-faded);
+}
+
+/* === STAGE GRID === */
+.stage-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: 40% 36% 24%;
+    z-index: 10;
+    min-height: calc(100vh - 230px);
+}
+
+/* === LEFT: KG VISUALIZATION === */
+.kg-panel {
+    position: relative;
+    padding: 2.4rem 1.5rem 2rem;
+    border-right: 1px solid rgba(244, 215, 149, 0.1);
+}
+.kg-panel::before {
+    content: "═══ KNOWLEDGE GRAPH ═══";
+    position: absolute;
+    top: 0.7rem; left: 50%;
+    transform: translateX(-50%);
+    font-family: "Cinzel", serif;
+    font-size: 0.62rem;
+    color: var(--candle-deep);
+    letter-spacing: 4px;
+    opacity: 0.65;
+}
+.kg-svg {
+    width: 100%;
+    height: auto;
+    max-height: 600px;
+    filter: drop-shadow(0 0 30px rgba(244, 215, 149, 0.06));
+}
+.kg-legend {
+    display: flex; gap: 1.4rem; justify-content: center;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--ink-faded);
+}
+.kg-legend .swatch {
+    display: inline-block;
+    width: 20px; height: 2px;
+    vertical-align: middle;
+    margin-right: 0.4rem;
+}
+.kg-legend .swatch.solid    { background: rgba(244, 215, 149, 0.6); }
+.kg-legend .swatch.dashed   {
+    background: linear-gradient(90deg, var(--candle) 33%, transparent 33% 66%, var(--candle) 66%);
+}
+
+/* === MIDDLE: DIALOGUE PARCHMENT === */
+.dialogue-panel {
+    position: relative;
+    padding: 2rem 1.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+.dragon-tag {
+    display: flex; align-items: center; gap: 0.9rem;
+    padding: 0.7rem 1.1rem;
+    background: linear-gradient(180deg, rgba(45, 93, 58, 0.32) 0%, rgba(26, 58, 35, 0.18) 100%);
+    border: 1px solid rgba(45, 93, 58, 0.45);
+    align-self: flex-start;
+}
+.dragon-tag .badge {
+    font-size: 1.5rem;
+    filter: drop-shadow(0 0 6px rgba(45, 93, 58, 0.6));
+}
+.dragon-tag .name {
+    font-family: "Cinzel", serif;
+    font-size: 0.95rem;
+    color: var(--candle);
+    letter-spacing: 1.5px;
+    line-height: 1.2;
+}
+.dragon-tag .role {
+    font-style: italic;
+    font-size: 0.78rem;
+    color: var(--ink-faded);
+    margin-top: 2px;
+}
+
+/* Parchment scroll */
+.scroll {
+    position: relative;
+    flex: 1;
+    background:
+        repeating-linear-gradient(
+            180deg,
+            rgba(160, 130, 80, 0) 0 32px,
+            rgba(160, 130, 80, 0.10) 32px 33px
+        ),
+        radial-gradient(ellipse at 50% 50%, var(--parchment) 0%, var(--parchment-aged) 100%);
+    color: var(--ink);
+    border: 1px solid rgba(244, 215, 149, 0.3);
+    box-shadow:
+        0 8px 30px rgba(0,0,0,0.6),
+        inset 0 0 50px rgba(160, 110, 60, 0.15);
+    padding: 2rem 1.8rem 1.4rem;
+    min-height: 360px;
+    max-height: 520px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--ink-faded) var(--parchment-aged);
+}
+.scroll::before, .scroll::after {
+    content: "✦";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--candle-deep);
+    font-size: 0.9rem;
+    opacity: 0.6;
+}
+.scroll::before { top: 0.6rem; }
+.scroll::after  { bottom: 0.6rem; }
+.scroll::-webkit-scrollbar         { width: 8px; }
+.scroll::-webkit-scrollbar-track   { background: var(--parchment-aged); }
+.scroll::-webkit-scrollbar-thumb   { background: var(--ink-faded); }
+
+#dialogue-thread { display: flex; flex-direction: column; gap: 1.4rem; }
+
+.scroll .empty-state {
+    margin: 1.5rem 0;
+    text-align: center;
+    color: var(--ink-faded);
+    font-style: italic;
+    font-size: 1.05rem;
+    line-height: 1.7;
+}
+.scroll .empty-state .sigil {
+    display: block;
+    margin-top: 0.9rem;
+    font-family: "Cinzel", serif;
+    font-style: normal;
+    font-size: 0.85rem;
+    color: var(--candle-deep);
+    letter-spacing: 6px;
+    animation: pulse 2.5s ease-in-out infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50%      { opacity: 1.0; }
+}
+
+/* Re-skin chat/_pair.html turns */
+.scroll .turn { background: none; border: none; padding: 0; max-width: 100%; color: var(--ink); }
+.scroll .turn .role {
+    font-family: "Cinzel", serif;
+    font-size: 0.7rem;
+    letter-spacing: 1.8px;
+    color: var(--ink-faded);
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+}
+.scroll .turn.user .role::before {
+    content: "Q. ";
+    color: var(--scale);
+    font-weight: 700;
+}
+.scroll .turn.assistant .role::before {
+    content: "A. ";
+    color: #6b3a1a;
+    font-weight: 700;
+}
+.scroll .turn .body {
+    font-size: 1.08rem;
+    line-height: 1.65;
+    color: var(--ink);
+    white-space: pre-wrap;
+    padding-left: 1.4rem;
+    border-left: 2px solid rgba(160, 130, 80, 0.35);
+}
+.scroll .turn.user .body { font-style: italic; color: #2a4a2c; }
+.scroll .turn .stat {
+    font-family: "Cinzel", serif;
+    font-size: 0.62rem;
+    color: var(--ink-faded);
+    margin-left: 0.6rem;
+}
+
+/* HTMX indicator */
+.htmx-indicator { display: none; align-self: flex-start; margin-top: 0.4rem; }
+.htmx-request .htmx-indicator { display: inline-block; }
+.thinking {
+    font-family: "Cinzel", serif;
+    font-size: 0.72rem;
+    color: var(--candle-deep);
+    letter-spacing: 3px;
+    font-style: italic;
+}
+.thinking::after {
+    content: " ◇ ◇ ◇";
+    animation: trail 1.4s ease-in-out infinite;
+}
+@keyframes trail {
+    0%, 100% { letter-spacing: 3px; opacity: 0.5; }
+    50%      { letter-spacing: 7px; opacity: 1; }
+}
+
+/* Inscribe input */
+.inscribe-bar {
+    background: rgba(17, 13, 8, 0.7);
+    border: 1px solid rgba(244, 215, 149, 0.2);
+}
+.inscribe-bar form { display: flex; align-items: center; padding: 0.85rem 1.15rem; }
+.inscribe-bar .prompt {
+    font-family: "Cinzel", serif;
+    font-size: 0.82rem;
+    color: var(--candle);
+    margin-right: 0.9rem;
+    letter-spacing: 2px;
+    text-shadow: 0 0 8px var(--candle-glow);
+}
+.inscribe-bar input[type=text] {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: "Cormorant Garamond", "Noto Serif KR", serif;
+    font-size: 1.18rem;
+    color: var(--parchment);
+    letter-spacing: 0.5px;
+    caret-color: var(--candle);
+}
+.inscribe-bar input::placeholder {
+    color: var(--ink-faded);
+    font-style: italic;
+}
+.inscribe-bar button {
+    margin-left: 0.9rem;
+    padding: 0.5rem 1.4rem;
+    background: transparent;
+    border: 1px solid var(--candle-deep);
+    color: var(--candle);
+    font-family: "Cinzel", serif;
+    font-size: 0.78rem;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 150ms ease;
+}
+.inscribe-bar button:hover {
+    background: var(--candle-deep);
+    color: var(--stone-deep);
+    box-shadow: 0 0 18px var(--candle-glow);
+}
+
+/* === RIGHT: SPARQL + OWL CODEX === */
+.codex-panel {
+    display: flex; flex-direction: column;
+    border-left: 1px solid rgba(244, 215, 149, 0.1);
+    padding: 2rem 1.4rem;
+    gap: 1.3rem;
+}
+.codex-panel h3 {
+    font-family: "Cinzel", serif;
+    font-size: 0.7rem;
+    color: var(--candle-deep);
+    letter-spacing: 3px;
+    margin: 0 0 0.5rem;
+    text-transform: uppercase;
+    border-bottom: 1px dashed rgba(244, 215, 149, 0.2);
+    padding-bottom: 0.4rem;
+}
+.sparql-block {
+    background: rgba(17, 13, 8, 0.6);
+    border: 1px solid rgba(244, 215, 149, 0.15);
+    padding: 0.9rem 1rem;
+    font-family: ui-monospace, "Courier Prime", monospace;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: var(--parchment);
+    white-space: pre-wrap;
+    overflow-x: auto;
+    margin: 0;
+}
+.sparql-block .keyword { color: var(--candle); font-weight: 600; }
+.sparql-block .var     { color: #b6e3c8; }
+.sparql-block .uri     { color: var(--scale); }
+.sparql-block .comment { color: var(--ink-faded); font-style: italic; }
+
+.reasoner-block {
+    background: linear-gradient(180deg, rgba(45, 93, 58, 0.20) 0%, rgba(26, 58, 35, 0.10) 100%);
+    border: 1px solid rgba(45, 93, 58, 0.45);
+    padding: 0.9rem 1rem;
+}
+.reasoner-block .status {
+    display: flex; align-items: center; gap: 0.55rem;
+    font-family: "Cinzel", serif;
+    font-size: 0.86rem;
+    color: var(--candle);
+    margin-bottom: 0.65rem;
+    letter-spacing: 1.5px;
+}
+.reasoner-block .status .check {
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--scale);
+    background: rgba(45, 93, 58, 0.35);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    color: var(--candle);
+    font-weight: 700;
+}
+.reasoner-block ul {
+    list-style: none; margin: 0; padding: 0;
+    font-family: ui-monospace, "Courier Prime", monospace;
+    font-size: 0.74rem;
+    line-height: 1.7;
+}
+.reasoner-block li {
+    padding: 0.22rem 0;
+    color: var(--parchment);
+    position: relative;
+    padding-left: 1.2rem;
+}
+.reasoner-block li::before {
+    content: "⊢";
+    position: absolute;
+    left: 0;
+    color: var(--candle-deep);
+    font-weight: 600;
+}
+.reasoner-block li .from {
+    display: block;
+    color: var(--ink-faded);
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-size: 0.78rem;
+    padding-left: 0.5rem;
+    line-height: 1.3;
+    margin-top: 1px;
+}
+
+/* === FOOTER === */
+.archive-footer {
+    position: relative;
+    display: flex; align-items: center; gap: 1.2rem;
+    padding: 0.9rem 3rem;
+    background: rgba(17, 13, 8, 0.55);
+    border-top: 1px solid rgba(244, 215, 149, 0.15);
+    font-family: "Cinzel", serif;
+    font-size: 0.72rem;
+    color: var(--ink-faded);
+    letter-spacing: 1.5px;
+    z-index: 10;
+}
+.archive-footer .tier-badge {
+    color: var(--candle);
+    padding: 4px 11px;
+    border: 1px solid rgba(244, 215, 149, 0.45);
+    background: rgba(244, 215, 149, 0.05);
+    letter-spacing: 2.5px;
+    font-weight: 600;
+}
+.archive-footer code {
+    color: var(--candle);
+    font-family: ui-monospace, monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0;
+}
+.archive-footer .grow { flex: 1; }
+.archive-footer a {
+    color: var(--candle);
+    text-decoration: none;
+}
+.archive-footer a:hover { text-shadow: 0 0 8px var(--candle-glow); }
+
+/* === KG SVG node + edge styles === */
+.kg-svg .node-circle {
+    stroke: var(--candle-deep);
+    stroke-width: 1.5;
+    fill: rgba(17, 13, 8, 0.85);
+    filter: drop-shadow(0 0 6px rgba(244, 215, 149, 0.3));
+}
+.kg-svg .node-circle.self {
+    stroke: var(--candle);
+    stroke-width: 2.5;
+    fill: rgba(244, 215, 149, 0.12);
+    filter: drop-shadow(0 0 14px var(--candle-glow));
+    animation: pulse-node 3s ease-in-out infinite;
+}
+@keyframes pulse-node {
+    0%, 100% { r: 26; }
+    50%      { r: 28.5; }
+}
+.kg-svg .node-circle.class {
+    stroke: var(--scale);
+    fill: rgba(45, 93, 58, 0.18);
+    stroke-dasharray: 3 2;
+}
+.kg-svg .node-label {
+    fill: var(--candle);
+    font-family: "Cinzel", serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-anchor: middle;
+}
+.kg-svg .node-label.self { font-size: 13px; }
+.kg-svg .node-sublabel {
+    fill: var(--ink-faded);
+    font-family: "Cormorant Garamond", serif;
+    font-size: 9.5px;
+    font-style: italic;
+    text-anchor: middle;
+}
+.kg-svg .edge {
+    stroke: rgba(244, 215, 149, 0.55);
+    stroke-width: 1.2;
+    fill: none;
+}
+.kg-svg .edge.inferred {
+    stroke: var(--candle);
+    stroke-dasharray: 4 4;
+    opacity: 0.75;
+    animation: flow 6s linear infinite;
+}
+@keyframes flow {
+    0%   { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -32; }
+}
+.kg-svg .edge-label {
+    fill: var(--ink-faded);
+    font-family: "Cormorant Garamond", serif;
+    font-style: italic;
+    font-size: 9.5px;
+    text-anchor: middle;
+}
+.kg-svg .edge-label.inferred {
+    fill: var(--candle);
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+    .stage-grid { grid-template-columns: 1fr; }
+    .kg-panel    { border-right: none; border-bottom: 1px solid rgba(244, 215, 149, 0.1); }
+    .codex-panel { border-left: none;  border-top:    1px solid rgba(244, 215, 149, 0.1); }
+}
+@media (max-width: 720px) {
+    .archive-header { flex-direction: column; gap: 0.8rem; padding: 1rem 1.2rem; align-items: flex-start; }
+    .kg-panel, .dialogue-panel, .codex-panel { padding: 1.4rem 1rem; }
+    .archive-footer { padding: 0.9rem 1.2rem; flex-wrap: wrap; }
+}
+</style>
+
+<div class="archive-stage">
+    <div class="mote"></div><div class="mote"></div><div class="mote"></div>
+    <div class="mote"></div><div class="mote"></div><div class="mote"></div>
+    <div class="mote"></div>
+
+    <header class="archive-header">
+        <div class="archive-title">
+            <span class="seal">🐉</span>
+            <h1>ANCIENT ARCHIVE</h1>
+            <span class="sub">— 동굴 도서관 #00, 마지막 용의 보고</span>
+        </div>
+        <div class="age-counter">
+            <span class="label">Age</span>
+            <span class="value">1,247</span>
+            <span class="unit">years</span>
+        </div>
+    </header>
+
+    <div class="stage-grid">
+
+        <!-- LEFT: KG VISUALIZATION -->
+        <aside class="kg-panel">
+            <svg class="kg-svg" viewBox="0 0 600 540" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+                        <path d="M 30 0 L 0 0 0 30" fill="none" stroke="rgba(244, 215, 149, 0.04)" stroke-width="0.5"/>
+                    </pattern>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+                            markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(244, 215, 149, 0.6)"/>
+                    </marker>
+                    <marker id="arrow-inferred" viewBox="0 0 10 10" refX="9" refY="5"
+                            markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#f4d795"/>
+                    </marker>
+                </defs>
+                <rect width="600" height="540" fill="url(#grid)"/>
+
+                <!-- ===== EDGES ===== -->
+
+                <!-- Dragon → WingedBeing (subClassOf, asserted) -->
+                <line class="edge" x1="300" y1="158" x2="300" y2="84" marker-end="url(#arrow)"/>
+                <text class="edge-label" x="324" y="120">subClassOf</text>
+
+                <!-- Self → Dragon (a, asserted) -->
+                <line class="edge" x1="300" y1="302" x2="300" y2="202" marker-end="url(#arrow)"/>
+                <text class="edge-label" x="316" y="260">a</text>
+
+                <!-- Vyrnaes → Dragon (a, asserted) -->
+                <line class="edge" x1="195" y1="258" x2="278" y2="190" marker-end="url(#arrow)"/>
+                <text class="edge-label" x="222" y="218">a</text>
+
+                <!-- Sothryn → Dragon (a, asserted) -->
+                <line class="edge" x1="100" y1="208" x2="278" y2="178" marker-end="url(#arrow)"/>
+                <text class="edge-label" x="160" y="186">a</text>
+
+                <!-- Self → Vyrnaes (descendantOf, asserted) -->
+                <path class="edge" d="M 278 320 Q 240 305 200 285" marker-end="url(#arrow)"/>
+                <text class="edge-label" x="232" y="296">descendantOf</text>
+
+                <!-- Vyrnaes → Sothryn (descendantOf, asserted) -->
+                <path class="edge" d="M 162 263 Q 130 245 100 232" marker-end="url(#arrow)"/>
+                <text class="edge-label" x="118" y="244">descendantOf</text>
+
+                <!-- INFERRED: Self → Sothryn (transitive descendantOf) -->
+                <path class="edge inferred" d="M 275 340 Q 175 410 90 240" marker-end="url(#arrow-inferred)"/>
+                <text class="edge-label inferred" x="160" y="402">descendantOf*</text>
+
+                <!-- INFERRED: Self → WingedBeing (subClassOf transitive) -->
+                <path class="edge inferred" d="M 320 305 Q 425 195 320 80" marker-end="url(#arrow-inferred)"/>
+                <text class="edge-label inferred" x="412" y="195">a* (inferred)</text>
+
+                <!-- Self → Erebor (lairIn, asserted) -->
+                <line class="edge" x1="326" y1="320" x2="425" y2="285" marker-end="url(#arrow)"/>
+                <text class="edge-label" x="378" y="295">lairIn</text>
+
+                <!-- Erebor → Arkenstone (containsTreasure, asserted) -->
+                <line class="edge" x1="463" y1="298" x2="510" y2="368" marker-end="url(#arrow)"/>
+                <text class="edge-label" x="500" y="332">contains</text>
+
+                <!-- Arkenstone → Thrór (discoveredBy, asserted) -->
+                <line class="edge" x1="510" y1="402" x2="448" y2="447" marker-end="url(#arrow)"/>
+                <text class="edge-label" x="490" y="430">discoveredBy</text>
+
+                <!-- Erebor → Self (wasAttackedBy, asserted) -->
+                <path class="edge" d="M 425 295 Q 380 320 332 322" marker-end="url(#arrow)"/>
+                <text class="edge-label" x="380" y="316">wasAttackedBy</text>
+
+                <!-- ===== NODES ===== -->
+
+                <!-- WingedBeing -->
+                <g>
+                    <circle class="node-circle class" cx="300" cy="60" r="24"/>
+                    <text class="node-label" x="300" y="56">:WingedBeing</text>
+                    <text class="node-sublabel" x="300" y="69">class</text>
+                </g>
+
+                <!-- Dragon -->
+                <g>
+                    <circle class="node-circle class" cx="300" cy="180" r="22"/>
+                    <text class="node-label" x="300" y="178">:Dragon</text>
+                    <text class="node-sublabel" x="300" y="190">class</text>
+                </g>
+
+                <!-- Sothryn -->
+                <g>
+                    <circle class="node-circle" cx="80" cy="210" r="22"/>
+                    <text class="node-label" x="80" y="208">:Sothryn</text>
+                    <text class="node-sublabel" x="80" y="220">grandam</text>
+                </g>
+
+                <!-- Vyrnaes -->
+                <g>
+                    <circle class="node-circle" cx="180" cy="265" r="22"/>
+                    <text class="node-label" x="180" y="263">:Vyrnaes</text>
+                    <text class="node-sublabel" x="180" y="275">mother</text>
+                </g>
+
+                <!-- Self (the speaker) -->
+                <g>
+                    <circle class="node-circle self" cx="300" cy="330" r="26"/>
+                    <text class="node-label self" x="300" y="328">:Self</text>
+                    <text class="node-sublabel" x="300" y="343">the speaker</text>
+                </g>
+
+                <!-- Erebor -->
+                <g>
+                    <circle class="node-circle" cx="445" cy="280" r="22"/>
+                    <text class="node-label" x="445" y="278">:Erebor</text>
+                    <text class="node-sublabel" x="445" y="290">mountain</text>
+                </g>
+
+                <!-- Arkenstone -->
+                <g>
+                    <circle class="node-circle" cx="525" cy="385" r="22"/>
+                    <text class="node-label" x="525" y="383">:Arkenstone</text>
+                    <text class="node-sublabel" x="525" y="395">treasure</text>
+                </g>
+
+                <!-- Thrór -->
+                <g>
+                    <circle class="node-circle" cx="425" cy="465" r="22"/>
+                    <text class="node-label" x="425" y="463">:Thrór</text>
+                    <text class="node-sublabel" x="425" y="475">dwarf king</text>
+                </g>
+            </svg>
+
+            <div class="kg-legend">
+                <span><span class="swatch solid"></span>asserted</span>
+                <span><span class="swatch dashed"></span>inferred (OWL reasoner)</span>
+            </div>
+        </aside>
+
+        <!-- MIDDLE: DIALOGUE PARCHMENT -->
+        <section class="dialogue-panel">
+            <div class="dragon-tag">
+                <span class="badge">{% if persona %}{{ persona.emoji }}{% else %}🐉{% endif %}</span>
+                <div>
+                    <div class="name">{% if persona %}{{ persona.display_name }}{% else %}동굴의 늙은 용{% endif %}</div>
+                    <div class="role">keeper of the lore · 1,247 years</div>
+                </div>
+            </div>
+
+            <div class="scroll">
+                <div id="dialogue-thread">
+                    <div class="empty-state">
+                        촛불이 흔들린다. 양피지 위로 그림자가 미끄러진다.<br>
+                        용의 호흡이 동굴 벽을 진동시킨다.<br>
+                        <em>— "무엇을 알고 싶은가."</em>
+                        <span class="sigil">◆ ◆ ◆</span>
+                    </div>
+                </div>
+                <span class="htmx-indicator">
+                    <span class="thinking">용이 lore 를 검색한다</span>
+                </span>
+            </div>
+
+            <div class="inscribe-bar">
+                <form hx-post="/web/chat/ancient_dragon/messages"
+                      hx-target="#dialogue-thread"
+                      hx-swap="beforeend"
+                      hx-on::before-request="document.querySelector('.empty-state')?.remove()"
+                      hx-on::after-request="this.reset(); const t = document.querySelector('.scroll'); t.scrollTop = t.scrollHeight">
+                    <span class="prompt">QUAERE</span>
+                    <input type="text"
+                           name="message"
+                           placeholder="용에게 lore 를 묻는다..."
+                           autocomplete="off"
+                           autofocus
+                           required>
+                    <button type="submit">기록</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- RIGHT: SPARQL + OWL CODEX -->
+        <aside class="codex-panel">
+
+            <div>
+                <h3>SPARQL · graph_query</h3>
+                <pre class="sparql-block"><span class="keyword">PREFIX</span> <span class="uri">adel</span>: &lt;<span class="uri">http://adelie.local/lore#</span>&gt;
+
+<span class="keyword">SELECT</span> <span class="var">?ancestor</span> <span class="var">?treasure</span>
+<span class="keyword">WHERE</span> {
+  <span class="uri">adel:Self</span> <span class="uri">adel:descendantOf</span><span class="keyword">+</span> <span class="var">?ancestor</span> .
+  <span class="uri">adel:Self</span> <span class="uri">adel:lairIn</span> <span class="var">?lair</span> .
+  <span class="var">?lair</span> <span class="uri">adel:containsTreasure</span> <span class="var">?treasure</span> .
+}
+<span class="keyword">ORDER BY</span> <span class="var">?ancestor</span></pre>
+            </div>
+
+            <div>
+                <h3>OWL Reasoner</h3>
+                <div class="reasoner-block">
+                    <div class="status">
+                        <span class="check">✓</span>
+                        <span>consistent</span>
+                    </div>
+                    <ul>
+                        <li>
+                            :Self · a · :WingedBeing
+                            <span class="from">via subClassOf(:Dragon)</span>
+                        </li>
+                        <li>
+                            :Self · descendantOf · :Sothryn
+                            <span class="from">via transitive(:descendantOf)</span>
+                        </li>
+                        <li>
+                            :Vyrnaes · a · :WingedBeing
+                            <span class="from">via subClassOf(:Dragon)</span>
+                        </li>
+                        <li>
+                            :Sothryn · a · :WingedBeing
+                            <span class="from">via subClassOf(:Dragon)</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </aside>
+
+    </div>
+
+    <footer class="archive-footer">
+        <span class="tier-badge">tier T4</span>
+        <span>· KG retriever + reasoner active</span>
+        <span>· persona <code>ancient_dragon</code></span>
+        <span class="grow"></span>
+        <a href="/demo/">← back to archive index</a>
+    </footer>
+
+</div>
+
+{% endblock %}
