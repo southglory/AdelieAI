@@ -27,6 +27,7 @@ AdelieAI 는 *영역별 독립 진화* 가 가능하도록 설계됐다. 한 영
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) (이 문서) | 영역 지도 · 기여 패턴 |
 | [`CAPABILITY_TIERS.md`](CAPABILITY_TIERS.md) | T1-T5 능력 사다리 · 페르소나 ↔ 티어 매핑 |
 | [`PERSONA_PACK.md`](PERSONA_PACK.md) | `.adelie` 팩 포맷 (페르소나 영역의 출하 단위) |
+| [`MILESTONES.md`](MILESTONES.md) | 영역 가로지르는 *결정* 의 timeline. 같은 프로세스에 N회차 돌아온 흐름도 보존 |
 
 ## 영역 README 의 표준 템플릿
 
