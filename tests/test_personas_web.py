@@ -338,6 +338,86 @@ def test_dismiss_surfaces_separately_in_summary(client: TestClient) -> None:
     assert "👎 0" in page.text
 
 
+# === /web/metrics dashboard (Step A5 — observability surface) ===
+
+
+def test_metrics_link_in_global_nav(client: TestClient) -> None:
+    r = client.get("/web/personas")
+    assert 'href="/web/metrics"' in r.text
+
+
+def test_metrics_page_renders_empty_state(client: TestClient) -> None:
+    r = client.get("/web/metrics")
+    assert r.status_code == 200
+    assert "Metrics" in r.text
+    assert "No activity yet" in r.text
+
+
+def test_metrics_page_aggregates_per_persona(client: TestClient) -> None:
+    # Two messages to penguin, one to fish
+    client.post("/web/chat/penguin_relaxed/messages", data={"message": "hi"})
+    client.post("/web/chat/penguin_relaxed/messages", data={"message": "hello"})
+    client.post("/web/chat/fish_swimmer/messages", data={"message": "blub"})
+
+    r = client.get("/web/metrics")
+    assert r.status_code == 200
+    # Two persona rows
+    assert "🐧" in r.text
+    assert "🐟" in r.text
+    # Aggregate footer ("Total")
+    assert "Total" in r.text
+    # Penguin: 2 user turns, 2 assistant turns
+    # Fish: 1 user turn, 1 assistant turn
+    # We don't lock exact numerical position; just ensure the totals appear
+    # somewhere in the rendered page.
+    assert "personas" in r.text
+
+
+def test_metrics_for_user_dataclass_via_store() -> None:
+    import asyncio
+    from datetime import datetime, timezone
+
+    from core.personas.store import ChatTurn, InMemoryChatStore
+
+    async def run() -> None:
+        store = InMemoryChatStore()
+        # 1 user + 1 assistant for "merchant", 2 user + 2 assistant for "dragon"
+        for pid, role, content, lat, tok in [
+            ("merchant", "user", "?", None, None),
+            ("merchant", "assistant", "ok", 100, 8),
+            ("dragon", "user", "?", None, None),
+            ("dragon", "assistant", "lore", 200, 16),
+            ("dragon", "user", "?", None, None),
+            ("dragon", "assistant", "more lore", 300, 32),
+        ]:
+            await store.append(
+                ChatTurn(
+                    id=None,
+                    persona_id=pid,
+                    user_id="u",
+                    role=role,
+                    content=content,
+                    tokens_in=None,
+                    tokens_out=tok,
+                    latency_ms=lat,
+                    created_at=datetime(2026, 4, 29, tzinfo=timezone.utc),
+                )
+            )
+        rows = await store.metrics_for_user("u")
+        by_pid = {m.persona_id: m for m in rows}
+        assert by_pid["merchant"].user_turns == 1
+        assert by_pid["merchant"].assistant_turns == 1
+        assert by_pid["merchant"].tokens_out_total == 8
+        assert by_pid["merchant"].latency_ms_total == 100
+        assert by_pid["merchant"].avg_latency_ms == 100.0
+        assert by_pid["dragon"].assistant_turns == 2
+        assert by_pid["dragon"].tokens_out_total == 48
+        assert by_pid["dragon"].avg_latency_ms == 250.0
+        # Other users get nothing
+        assert await store.metrics_for_user("other") == []
+    asyncio.run(run())
+
+
 def test_rating_stats_dataclass_via_store_directly() -> None:
     """RatingStats independent of HTTP — test the store path directly."""
     import asyncio

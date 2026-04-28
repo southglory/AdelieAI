@@ -20,6 +20,11 @@ ref 는 commit short hash, iteration report 파일명, 또는 Step 번호.
 
 ---
 
+## 2026-04-29
+
+- 2026-04-29 [observability/metrics] **A5 (#9) MVP — `/web/metrics` 대시보드**. 페르소나별 user/assistant turns, tokens_out, avg latency, last activity 롤업 테이블. `PersonaMetrics` dataclass + `ChatStore.metrics_for_user(user_id)` 양 store 구현. 글로벌 nav 에 Metrics 링크 추가. **292/292 tests** (4 신규). 기존 인프라 (state machine, AgentEvent, request middleware) 는 충분 — 남은 일은 *surface*. → 다음 commit
+  - 추가 가능한 layer (이번엔 미구현, 후속 후보): hourly/daily aggregation, p50/p99 latency, 비용 추적 (token × $), session timeline UI, healthcheck details endpoint.
+
 ## 2026-04-28
 
 - 2026-04-28 [persona/cynical_merchant] (4회차) **결제 페어 +6 (v3 트리거 queue) + round 5 측정**. dialogue_pairs.jsonl 63→69 로 결제 패턴 보강 ("결제 어떻게 해?"/"수표?"/"할부?" → "현금이나 골드만"). 재학습 안 함, 다음 LoRA v3 시 사용. **현재 LoRA v2 + 강화 prompt 만으로 pass 92% → 96%**, lore_payment 가 banned_genuine_fail → negation_false_positive 로 격하 ("현금이나 골드만. 카드 같은 건 모르겠군." 식 부정맥락 답변). substring grader 의 한계 — 실 voice 결함 아님. → 다음 commit
