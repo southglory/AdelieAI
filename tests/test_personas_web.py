@@ -84,7 +84,10 @@ def test_submit_message_returns_pair_partial(client: TestClient) -> None:
     )
     assert r.status_code == 200
     assert "안녕? 오늘 뭐 했어?" in r.text
-    assert "stub" in r.text  # StubLLMClient echoes
+    # StubLLMClient now returns a persona-shaped canned reply when the
+    # system prompt declares 펭귄/물고기/기사/잡화상/탐정. For the
+    # penguin persona we expect the reply to NOT be the bare echo.
+    assert "[stub:" not in r.text
     assert "<html" not in r.text  # partial only
     # Per-turn telemetry must surface
     assert "tok" in r.text
