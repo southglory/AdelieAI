@@ -1,5 +1,5 @@
-> **Slot npc1** — 디자인 후 디렉터리명을 `{persona_id}` 로 rename.
-# {Display Name}
+> **Slot `ancient_dragon`** · vertical: **knowledge** · target_tier: **T4** · 시트 작성 대기
+# 동굴의 늙은 용
 
 > 빈 시트. 한 슬롯씩 채운다. 가이드: [`docs/persona_design_guide.md`](../../docs/persona_design_guide.md)
 

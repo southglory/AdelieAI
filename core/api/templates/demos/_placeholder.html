@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block main %}
+<style>
+  .demo-placeholder {
+    max-width: 720px;
+    margin: 2rem auto;
+    padding: 2rem;
+    border: 1px dashed var(--bd);
+    border-radius: 12px;
+    background: #fafafa;
+  }
+  .demo-placeholder h2 { margin-top: 0; }
+  .demo-pill {
+    display: inline-block;
+    padding: 4px 10px;
+    background: #f0f4f8;
+    border-radius: 4px;
+    font-family: ui-monospace, monospace;
+    font-size: 0.85em;
+  }
+  .demo-meta dl { grid-template-columns: 130px 1fr; }
+</style>
+
+<div class="demo-placeholder">
+  <p class="muted"><a href="/demo/">← 모든 vertical</a></p>
+
+  <h2>{% if persona %}{{ persona.emoji }} {% endif %}{{ vertical }} demo</h2>
+
+  <p><span class="demo-pill">{{ tier_label }}</span></p>
+
+  <p>{{ blurb }}</p>
+
+  <div class="demo-meta">
+    <h3>Persona</h3>
+    {% if persona %}
+    <dl>
+      <dt>persona_id</dt><dd><code>{{ persona.persona_id }}</code></dd>
+      <dt>display_name</dt><dd>{{ persona.display_name }}</dd>
+      <dt>industry</dt><dd>{{ persona.industry }}</dd>
+      <dt>target_tier</dt><dd>T{{ persona.target_tier }}</dd>
+      <dt>base</dt><dd><code>{{ persona.base_model_hint.split('/')[-1] }}</code></dd>
+      {% if persona.adapter_hint %}<dt>adapter</dt><dd><code>{{ persona.adapter_hint }}</code></dd>{% endif %}
+    </dl>
+    <p style="margin-top: 1rem;">
+      <a href="/web/chat/{{ persona.persona_id }}">→ 기본 콘솔에서 이 페르소나와 대화</a>
+    </p>
+    {% else %}
+    <p>
+      이 vertical 의 페르소나 (<code>{{ persona_id }}</code>) 는 아직 등록 전입니다.
+      <a href="https://github.com/southglory/AdelieAI/tree/main/personas">personas/ 디렉터리</a>에서 디자인 진행 상황 확인.
+    </p>
+    {% endif %}
+  </div>
+
+  <div class="demo-meta" style="margin-top: 1.5rem;">
+    <h3>UX 디자인 상태</h3>
+    <p class="muted">
+      이 페이지는 <strong>placeholder</strong> 입니다 (Step 1 의 토대 라우트). 본격 디자인은 다음 단계에서 vertical 별로 진행됩니다.
+    </p>
+    <p class="muted">
+      <a href="https://github.com/southglory/AdelieAI/blob/main/docs/CAPABILITY_TIERS.md">CAPABILITY_TIERS.md</a> 에서 이 티어가 무엇을 요구하는지 확인.
+    </p>
+  </div>
+</div>
+{% endblock %}

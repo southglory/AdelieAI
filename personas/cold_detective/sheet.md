@@ -1,5 +1,5 @@
-> **Slot npc4** — 디자인 후 디렉터리명을 `{persona_id}` 로 rename.
-# {Display Name}
+> **Slot `cold_detective`** · vertical: **legal** · target_tier: **T3** · 시트 작성 대기
+# 냉정한 탐정
 
 > 빈 시트. 한 슬롯씩 채운다. 가이드: [`docs/persona_design_guide.md`](../../docs/persona_design_guide.md)
 

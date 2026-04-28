@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from core import __version__
 from core.api.agents import build_router
+from core.api.demos_router import build_demos_router
 from core.api.docs import build_docs_router
 from core.api.docs_web import build_docs_web_router
 from core.api.eval import build_eval_router
@@ -42,6 +43,69 @@ def _has_weights(path: Path) -> bool:
     if not path.exists():
         return False
     return any(path.glob("*.safetensors")) or any(path.glob("model-*.safetensors"))
+
+
+def _compute_tier(
+    app, *, ingest=None, retriever=None
+) -> dict[str, object]:
+    """Self-introspect which capability tier the running build supports.
+
+    See docs/CAPABILITY_TIERS.md for the framework. Returned shape is
+    consumed by both / and /health so the public surface declares a
+    consistent answer.
+    """
+    statuses: dict[str, str] = {}
+    tier = 1
+
+    # T1 — vanilla LLM. Always present (StubLLMClient is the floor).
+    statuses["T1"] = "ok"
+
+    # T2 — LoRA + vector RAG. We accept either a real LLM (transformers
+    # or gguf) and a hybrid retriever as a working T2 stack.
+    llm_real = type(app.state.llm).__name__ in {"TransformersClient", "GGUFClient"}
+    has_vector_rag = ingest is not None and retriever is not None
+    if llm_real and has_vector_rag:
+        tier = 2
+        statuses["T2"] = "ok"
+    else:
+        missing = []
+        if not llm_real:
+            missing.append("real_llm")
+        if not has_vector_rag:
+            missing.append("vector_rag")
+        statuses["T2"] = "missing: " + ", ".join(missing) if missing else "ok"
+
+    # T3 — tool-use protocol available + at least one tool registered.
+    try:
+        from core.tools import ToolRegistry  # noqa: F401
+
+        tool_registry = getattr(app.state, "tool_registry", None)
+        if tool_registry is not None and len(tool_registry) > 0:
+            tier = max(tier, 3)
+            statuses["T3"] = f"ok ({len(tool_registry)} tools)"
+        else:
+            statuses["T3"] = "missing: tool_registry"
+    except ImportError:
+        statuses["T3"] = "missing: core.tools"
+
+    # T4 — graph retriever + (optionally) OWL reasoner.
+    graph = getattr(app.state, "graph_retriever", None)
+    if graph is not None:
+        tier = max(tier, 4)
+        reasoner = getattr(app.state, "owl_reasoner", None)
+        statuses["T4"] = "ok" + (" + reasoner" if reasoner else " (no reasoner)")
+    else:
+        statuses["T4"] = "missing: graph_retriever"
+
+    # T5 — multi-agent runner + per-persona LoRA loader (vLLM bridge).
+    multi_agent = getattr(app.state, "multi_agent_runner", None)
+    if multi_agent is not None:
+        tier = max(tier, 5)
+        statuses["T5"] = "ok"
+    else:
+        statuses["T5"] = "missing: multi_agent_runner"
+
+    return {"tier": tier, "tier_max": 5, "tier_status": statuses}
 
 
 def _default_llm() -> LLMClient:
@@ -245,6 +309,7 @@ def build_app(
     app.include_router(build_eval_router(app.state.store, app.state.llm))
     app.include_router(build_eval_web_router(app.state.store, app.state.llm))
     app.include_router(build_presets_router())
+    app.include_router(build_demos_router())
 
     @app.get("/health")
     async def health() -> dict[str, object]:
@@ -254,6 +319,7 @@ def build_app(
             and retriever.reranker is not None
             else None
         )
+        tier_info = _compute_tier(app, ingest=ingest, retriever=retriever)
         return {
             "status": "ok",
             "version": __version__,
@@ -266,21 +332,25 @@ def build_app(
             "retriever": (
                 type(retriever).__name__ if retriever is not None else None
             ),
+            **tier_info,
         }
 
     @app.get("/")
     async def root() -> dict[str, object]:
+        tier_info = _compute_tier(app, ingest=ingest, retriever=retriever)
         return {
             "name": "AdelieAI",
             "version": __version__,
             "modules": [
                 "schemas", "session", "agent", "serving",
-                "retrieval", "personas", "api",
+                "retrieval", "personas", "tools", "api",
             ],
             "llm": app.state.llm.model_id,
             "store": type(app.state.store).__name__,
             "chat_store": type(app.state.chat_store).__name__,
             "retrieval": "ready" if ingest is not None else "unavailable",
+            "tier": tier_info["tier"],
+            "tier_max": tier_info["tier_max"],
         }
 
     return app

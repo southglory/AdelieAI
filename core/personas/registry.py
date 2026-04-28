@@ -25,6 +25,14 @@ class Persona:
     adapter_hint: str | None = None
     rag_enabled: bool = False
 
+    # Capability declaration. See docs/CAPABILITY_TIERS.md.
+    #   target_tier: minimum stack the persona requires to be fully alive
+    #     (1=toy / 2=NPC / 3=advisor / 4=domain expert / 5=multi-agent)
+    #   industry: the demo vertical this persona belongs to
+    #     ("general" | "gaming" | "legal" | "knowledge" | ...)
+    target_tier: int = 2
+    industry: str = "general"
+
 
 _PENGUIN = Persona(
     persona_id="penguin_relaxed",
@@ -38,6 +46,8 @@ _PENGUIN = Persona(
     ),
     base_model_hint="Qwen/Qwen2.5-7B-Instruct",
     adapter_hint="qwen-roleplay-v2",
+    target_tier=2,
+    industry="general",
 )
 
 
@@ -53,6 +63,8 @@ _FISH = Persona(
     ),
     base_model_hint="Qwen/Qwen2.5-7B-Instruct",
     adapter_hint="qwen-roleplay-v2",
+    target_tier=2,
+    industry="general",
 )
 
 
@@ -68,6 +80,8 @@ _KNIGHT = Persona(
     ),
     base_model_hint="Qwen/Qwen2.5-7B-Instruct",
     adapter_hint="qwen-roleplay-v2",
+    target_tier=2,
+    industry="general",
 )
 
 

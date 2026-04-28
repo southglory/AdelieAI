@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block main %}
+<h2>Industry demos</h2>
+<p class="muted">
+  AdelieAI 의 한 엔진이 산업별로 어떻게 다른 얼굴을 입는지 보여주는 데모 모음.
+  각 vertical 은 자기 페르소나 1명과 자기 능력 티어를 대표한다.
+  <a href="/docs#capability-tiers">티어 framework 설명</a> ·
+  <a href="https://github.com/southglory/AdelieAI/blob/main/docs/CAPABILITY_TIERS.md">CAPABILITY_TIERS.md</a>
+</p>
+
+<div class="vertical-grid">
+  {% for v in verticals %}
+  <a class="vertical-card" href="/demo/{{ v.slug }}">
+    <div class="vertical-header">
+      <span class="vertical-emoji">
+        {%- if v.persona %}{{ v.persona.emoji }}{% else %}❓{% endif -%}
+      </span>
+      <span class="vertical-slug">{{ v.slug }}</span>
+    </div>
+    <div class="vertical-tier">{{ v.tier_label }}</div>
+    <div class="vertical-blurb">{{ v.blurb }}</div>
+    {% if v.persona %}
+      <div class="vertical-persona muted">→ {{ v.persona.display_name }}</div>
+    {% else %}
+      <div class="vertical-persona muted">→ <code>{{ v.persona_id }}</code> (디자인 진행 중)</div>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+<style>
+.vertical-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.vertical-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+.vertical-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  text-decoration: none;
+}
+.vertical-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 1.05em;
+}
+.vertical-emoji { font-size: 1.4em; }
+.vertical-slug { font-family: ui-monospace, monospace; }
+.vertical-tier {
+  font-family: ui-monospace, monospace;
+  font-size: 0.78em;
+  color: #555;
+  background: #f0f4f8;
+  padding: 2px 8px;
+  border-radius: 4px;
+  width: fit-content;
+}
+.vertical-blurb {
+  font-size: 0.9em;
+  line-height: 1.5;
+  color: #444;
+}
+.vertical-persona {
+  font-size: 0.85em;
+  margin-top: auto;
+}
+</style>
+{% endblock %}
