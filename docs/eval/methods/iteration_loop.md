@@ -1,5 +1,7 @@
 # Iteration Loop ("EvalGardener")
 
+> 📝 **이름 출처**: "EvalGardener" 는 이 프로젝트 내부에서 만든 작업명 (Claude 가 디자인 회의 중 명명). 학계·업계 등록 용어 아님. "garden" 비유는 *eval suite 를 시간 따라 손질하는 정원처럼* 다룬다는 뜻.
+
 지속적 자가 개선 프로세스. 페르소나 평가 셋과 시스템 프롬프트가 *시간 따라 자라는* 패턴 — agent (Claude) 가 중간 분석점에 개입.
 
 > 이 패턴은 학계/업계에 *고정 평가 셋* 일색인 현재 흐름과 다름. 가까운 친척: DSPy (프롬프트만), EvalPlus (code 도메인 adversarial). 진정한 self-improving eval suite 는 emerging.

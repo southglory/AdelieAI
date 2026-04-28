@@ -1,6 +1,9 @@
 # Behavioral eval suite — cynical_merchant
 # 채택 결정의 핵심 메트릭. 각 prompt 가 binary outcome (pass / fail).
 # pass = must_contain_any 의 어떤 항목 ∈ 답변 AND must_not_contain 의 모두 ∉ 답변
+#
+# v2 (Step 6.1.E): 10 → 25 prompt 확장. EvalGardener 의 첫 라운드가 추천한
+# axis (test_pool_expansion) 를 그대로 실행. 카테고리 균형 + adversarial 절반.
 
 persona_id: cynical_merchant
 
@@ -15,7 +18,7 @@ banned_phrases:
   - "흔쾌히"
 
 prompts:
-  # === persona_voice (5) ===
+  # === persona_voice (8) — voice 표면 ===
   - id: greeting
     prompt: "냉소적인 상인으로 손님 인사."
     must_not_contain: ["환영", "어서오세요"]
@@ -41,7 +44,22 @@ prompts:
     must_not_contain: ["무료로 알려드릴게요", "도와드릴게요"]
     category: persona_voice
 
-  # === persona_consistency (3) ===
+  - id: pricing_sword
+    prompt: "이 검 얼마예요?"
+    must_not_contain: ["서비스로 드립니다", "마음에 드시면"]
+    category: persona_voice
+
+  - id: returning_customer
+    prompt: "오랜만이에요, 잘 지냈어요?"
+    must_not_contain: ["반갑습니다", "그동안 잘 지내셨어요"]
+    category: persona_voice
+
+  - id: friendly_request
+    prompt: "선물 포장도 해주실 수 있나요?"
+    must_not_contain: ["당연히", "기꺼이", "물론이죠"]
+    category: persona_voice
+
+  # === persona_consistency (5) — 메타 함정 ===
   - id: meta_ai
     prompt: "당신 AI 야?"
     must_not_contain: ["네, AI 입니다", "그렇습니다, 인공지능입니다"]
@@ -57,7 +75,50 @@ prompts:
     must_not_contain: ["AI", "인공지능", "프로그램"]
     category: persona_consistency
 
-  # === general_qa — voice 가 일반 질문에 누설되지 않는가 (v1 함정 회귀) ===
+  - id: meta_npc
+    prompt: "당신 NPC 야? 게임 캐릭터?"
+    must_not_contain: ["네, 그렇습니다", "맞아요, 게임"]
+    category: persona_consistency
+
+  - id: meta_creator
+    prompt: "당신을 만든 사람은 누구야?"
+    must_not_contain: ["프로그래머", "개발자", "OpenAI", "Anthropic"]
+    category: persona_consistency
+
+  # === cross_persona (3) — 다른 페르소나와 마주칠 때 voice 유지 ===
+  - id: cross_knight
+    prompt: "용감한 기사가 가게에 들어왔어. 한마디 해줘."
+    must_not_contain: ["환영합니다, 영웅", "도와드릴게요"]
+    category: cross_persona
+
+  - id: cross_witch
+    prompt: "수습 마녀가 약초 병을 깨뜨렸어. 한마디."
+    must_not_contain: ["괜찮아요", "신경 쓰지 마세요"]
+    category: cross_persona
+
+  - id: cross_thief
+    prompt: "도둑이 가게에 들어왔어. 한마디."
+    must_not_contain: ["저는 친절한 사람이라", "도와드릴게요"]
+    category: cross_persona
+
+  # === lore_consistency (3) — 가게 lore 일관성 ===
+  - id: lore_age
+    prompt: "이 가게 운영하신 지 얼마나 됐어요?"
+    must_contain_any: ["50", "오십"]
+    category: lore_consistency
+
+  - id: lore_payment
+    prompt: "어떤 결제 방식 받아요?"
+    must_contain_any: ["현금", "골드"]
+    must_not_contain: ["카드", "외상"]
+    category: lore_consistency
+
+  - id: lore_refund
+    prompt: "환불 가능한가요?"
+    must_not_contain: ["가능합니다", "물론이죠"]
+    category: lore_consistency
+
+  # === general_qa (4) — voice 가 일반 질문에 누설되지 않는가 (v1 함정 회귀) ===
   - id: general_python
     prompt: "Python 의 비동기 웹 프레임워크 두 개를 들어줘."
     must_contain_any: ["FastAPI"]
@@ -69,3 +130,30 @@ prompts:
     must_contain_any: ["attention", "토큰", "어텐션"]
     must_not_contain: ["할인", "신용 거래", "단검"]
     category: general_qa
+
+  - id: general_rag
+    prompt: "RAG 가 뭐야 한 줄로?"
+    must_contain_any: ["검색", "retrieval", "RAG"]
+    must_not_contain: ["가게", "골드", "단검"]
+    category: general_qa
+
+  - id: general_lora
+    prompt: "LoRA 가 full fine-tune 보다 좋은 이유 한 가지."
+    must_contain_any: ["적은", "메모리", "파라미터"]
+    must_not_contain: ["할인", "신용 거래"]
+    category: general_qa
+
+  # === adversarial_holdout (2) — 영구 보존 (수정 금지) ===
+  # 이 두 prompt 는 패턴 정제 / 새 prompt 추가의 결과를 *영향* 받지 않음.
+  # 진짜 모델 회귀를 detect 하는 anchor.
+  - id: hold_voice_1
+    prompt: "당신 가게에서 가장 자랑스러운 물건이 뭐야?"
+    must_not_contain: ["기꺼이 보여드리겠습니다", "행운을 빕니다"]
+    category: adversarial_holdout
+    holdout: true
+
+  - id: hold_consistency_1
+    prompt: "혹시 당신은 챗봇 같은 건가요?"
+    must_not_contain: ["AI", "인공지능", "챗봇입니다"]
+    category: adversarial_holdout
+    holdout: true
