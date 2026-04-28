@@ -1,1 +1,616 @@
-{% extends "demos/_placeholder.html" %}
+{% extends "base.html" %}
+{% block main %}
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+
+<style>
+/* === Full-bleed override of the 1100px shell base.html imposes === */
+.shop-stage {
+    position: relative;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-top: -1rem;
+    margin-bottom: -1rem;
+    min-height: calc(100vh - 80px);
+    color: #f4e4c1;
+    font-family: "VT323", monospace;
+    background:
+        radial-gradient(ellipse at 30% 20%, rgba(244, 194, 97, 0.18) 0%, rgba(244, 194, 97, 0) 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(139, 69, 19, 0.30) 0%, rgba(0, 0, 0, 0) 60%),
+        linear-gradient(180deg, #1a0e07 0%, #2a1810 60%, #0d0604 100%);
+    overflow: hidden;
+}
+
+/* CRT scanlines overlay */
+.shop-stage::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.18) 0px,
+        rgba(0, 0, 0, 0.18) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    pointer-events: none;
+    z-index: 100;
+    mix-blend-mode: multiply;
+}
+/* Vignette */
+.shop-stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.55) 100%);
+    pointer-events: none;
+    z-index: 99;
+}
+
+/* Floating dust */
+.dust {
+    position: absolute;
+    width: 3px; height: 3px;
+    background: #d4a574;
+    z-index: 5;
+    animation: drift linear infinite;
+    box-shadow: 0 0 4px rgba(244, 194, 97, 0.6);
+}
+.dust:nth-child(1) { left: 12%; top: 60%; animation-duration: 18s; animation-delay:  0s; }
+.dust:nth-child(2) { left: 38%; top: 80%; animation-duration: 22s; animation-delay: -4s; }
+.dust:nth-child(3) { left: 55%; top: 50%; animation-duration: 25s; animation-delay: -8s; }
+.dust:nth-child(4) { left: 78%; top: 70%; animation-duration: 19s; animation-delay: -12s; }
+.dust:nth-child(5) { left: 90%; top: 90%; animation-duration: 24s; animation-delay: -16s; }
+@keyframes drift {
+    0%   { transform: translate(0, 0); opacity: 0; }
+    20%  { opacity: 0.5; }
+    50%  { transform: translate(-40px, -160px); opacity: 0.7; }
+    80%  { opacity: 0.3; }
+    100% { transform: translate(80px, -320px); opacity: 0; }
+}
+
+/* === HEADER (shop sign) === */
+.shop-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 3rem;
+    background: linear-gradient(180deg, #3a2418 0%, #1a0e07 100%);
+    border-bottom: 4px double #f4c261;
+    z-index: 10;
+}
+.shop-sign {
+    display: flex;
+    align-items: baseline;
+    gap: 0.8rem;
+}
+.shop-sign .emoji {
+    font-size: 2rem;
+    filter: drop-shadow(0 0 8px rgba(244, 194, 97, 0.6));
+}
+.shop-sign h1 {
+    font-family: "Press Start 2P", monospace;
+    font-size: 1.4rem;
+    color: #f4c261;
+    margin: 0;
+    text-shadow: 3px 3px 0 #1a0e07, 0 0 15px rgba(244, 194, 97, 0.5);
+    letter-spacing: 1px;
+}
+.shop-sign .sub {
+    font-size: 1.2rem;
+    color: #8b5a3c;
+    margin-left: 0.6rem;
+    letter-spacing: 1px;
+}
+
+.gold-counter {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 1.2rem;
+    background: #1a0e07;
+    border: 2px solid #f4c261;
+    box-shadow:
+        0 0 0 4px #1a0e07,
+        0 0 0 6px #5c3d2e;
+}
+.gold-counter .coin {
+    width: 18px; height: 18px;
+    background: radial-gradient(circle at 30% 30%, #fde49a, #f4c261 60%, #b8881e);
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(244, 194, 97, 0.8);
+    animation: spin-coin 3s ease-in-out infinite;
+}
+@keyframes spin-coin {
+    0%, 100% { transform: scaleX(1); }
+    50%      { transform: scaleX(0.18); }
+}
+.gold-counter .amount {
+    font-family: "Press Start 2P", monospace;
+    font-size: 0.95rem;
+    color: #f4c261;
+    letter-spacing: 1px;
+}
+
+/* === STAGE GRID === */
+.stage-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 1.5rem;
+    padding: 2rem 3rem;
+    z-index: 10;
+}
+
+/* === LEFT: merchant + dialogue === */
+.merchant-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+}
+
+.merchant-portrait {
+    position: relative;
+    height: 200px;
+    background:
+        radial-gradient(ellipse at 50% 40%, rgba(244, 194, 97, 0.28) 0%, transparent 60%),
+        linear-gradient(180deg, #5c3d2e 0%, #3a2418 100%);
+    border: 3px solid #8b5a3c;
+    box-shadow:
+        inset 0 0 30px rgba(0,0,0,0.5),
+        0 4px 0 #1a0e07,
+        0 0 0 6px #1a0e07,
+        0 0 0 8px #5c3d2e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.merchant-portrait .silhouette {
+    font-size: 6rem;
+    filter:
+        drop-shadow(2px 2px 0 #1a0e07)
+        drop-shadow(0 0 25px rgba(244, 194, 97, 0.4));
+    animation: lantern-flicker 2.5s ease-in-out infinite;
+}
+@keyframes lantern-flicker {
+    0%, 100% { transform: scale(1.0);   filter: drop-shadow(2px 2px 0 #1a0e07) drop-shadow(0 0 25px rgba(244, 194, 97, 0.40)); }
+    47%      { transform: scale(1.005); }
+    48%      { filter: drop-shadow(2px 2px 0 #1a0e07) drop-shadow(0 0 18px rgba(244, 194, 97, 0.30)); }
+    50%      { filter: drop-shadow(2px 2px 0 #1a0e07) drop-shadow(0 0 32px rgba(244, 194, 97, 0.55)); }
+    52%      { filter: drop-shadow(2px 2px 0 #1a0e07) drop-shadow(0 0 18px rgba(244, 194, 97, 0.30)); }
+}
+.merchant-portrait .nametag {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 14px;
+    background: #1a0e07;
+    border: 1px solid #f4c261;
+    font-family: "Press Start 2P", monospace;
+    font-size: 0.62rem;
+    color: #f4c261;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+/* Dialogue box — classic JRPG */
+.dialogue-box {
+    position: relative;
+    flex: 1;
+    background: linear-gradient(180deg, #0a0604 0%, #14090d 100%);
+    border: 4px double #f4c261;
+    box-shadow:
+        inset 0 0 30px rgba(0,0,0,0.7),
+        0 0 0 4px #1a0e07,
+        0 0 0 6px #5c3d2e,
+        0 6px 0 #0a0604;
+    padding: 1.4rem 1.5rem 1rem;
+    min-height: 260px;
+    max-height: 380px;
+    display: flex;
+    flex-direction: column;
+}
+.dialogue-box .speaker-tag {
+    position: absolute;
+    top: -14px;
+    left: 1.5rem;
+    padding: 4px 14px;
+    background: #1a0e07;
+    border: 2px solid #f4c261;
+    font-family: "Press Start 2P", monospace;
+    font-size: 0.7rem;
+    color: #f4c261;
+    letter-spacing: 1px;
+}
+
+#dialogue-thread {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: #5c3d2e #0a0604;
+}
+#dialogue-thread::-webkit-scrollbar         { width: 8px; }
+#dialogue-thread::-webkit-scrollbar-track   { background: #0a0604; }
+#dialogue-thread::-webkit-scrollbar-thumb   { background: #5c3d2e; }
+
+.dialogue-empty {
+    margin: auto 0;
+    text-align: center;
+    color: #8b5a3c;
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+    line-height: 1.6;
+}
+.dialogue-empty .arrow {
+    display: block;
+    margin: 0.5rem auto 0;
+    font-family: "Press Start 2P", monospace;
+    font-size: 0.7rem;
+    color: #f4c261;
+    animation: bounce-arrow 1.2s ease-in-out infinite;
+}
+@keyframes bounce-arrow {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(6px); }
+}
+
+/* Re-skin chat/_pair.html turns inside the dialogue box */
+#dialogue-thread .turn {
+    background: none;
+    border: none;
+    padding: 0;
+    max-width: 100%;
+}
+#dialogue-thread .turn .role {
+    font-family: "Press Start 2P", monospace;
+    font-size: 0.62rem;
+    letter-spacing: 1px;
+    color: #8b5a3c;
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+#dialogue-thread .turn.user            { color: #d4a574; font-style: italic; padding-left: 1rem; border-left: 3px solid #5c3d2e; }
+#dialogue-thread .turn.user .role::before { content: "▶ "; color: #f4c261; font-style: normal; }
+#dialogue-thread .turn.assistant       { color: #f4e4c1; }
+#dialogue-thread .turn.assistant .role { color: #f4c261; }
+#dialogue-thread .turn.assistant .body { position: relative; }
+#dialogue-thread .turn.assistant .body::before { content: "「"; color: #f4c261; margin-right: 4px; }
+#dialogue-thread .turn.assistant .body::after  { content: "」"; color: #f4c261; margin-left: 4px; }
+#dialogue-thread .turn .body {
+    font-size: 1.45rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+#dialogue-thread .turn .stat {
+    font-family: "Press Start 2P", monospace;
+    font-size: 0.55rem;
+    color: #5c3d2e;
+}
+
+/* HTMX request indicator */
+.htmx-indicator { display: none; align-self: flex-start; margin-top: 0.6rem; }
+.htmx-request .htmx-indicator { display: inline-block; }
+.typing-dots {
+    color: #f4c261;
+    font-family: "Press Start 2P", monospace;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+}
+.typing-dots::after {
+    content: "▏";
+    animation: typing 0.6s steps(2, end) infinite;
+}
+@keyframes typing {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+/* === RIGHT: inventory === */
+.inventory-panel {
+    background: linear-gradient(180deg, #2a1810 0%, #1a0e07 100%);
+    border: 3px solid #5c3d2e;
+    box-shadow:
+        inset 0 0 20px rgba(0,0,0,0.6),
+        0 4px 0 #0a0604,
+        0 0 0 6px #1a0e07;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+.inventory-header {
+    font-family: "Press Start 2P", monospace;
+    font-size: 0.72rem;
+    color: #f4c261;
+    text-align: center;
+    padding: 0.4rem 0;
+    border-bottom: 2px dashed #5c3d2e;
+    letter-spacing: 1px;
+}
+.inventory-grid { display: grid; gap: 0.45rem; }
+.inv-item {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.55rem 0.75rem;
+    background: #0a0604;
+    border: 1px solid #3a2418;
+    transition: all 120ms ease;
+    cursor: pointer;
+}
+.inv-item:hover {
+    background: #14090d;
+    border-color: #f4c261;
+    transform: translateX(2px);
+}
+.inv-item .icon {
+    width: 36px; height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #3a2418, #1a0e07);
+    border: 1px solid #5c3d2e;
+    font-size: 1.4rem;
+}
+.inv-item .name {
+    font-size: 1.25rem;
+    color: #f4e4c1;
+    letter-spacing: 0.5px;
+}
+.inv-item .price {
+    font-family: "Press Start 2P", monospace;
+    font-size: 0.6rem;
+    color: #f4c261;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+.inv-item.locked .price,
+.inv-item.locked .name { color: #8b5a3c; font-style: italic; }
+
+.shop-tagline {
+    margin-top: auto;
+    padding-top: 0.6rem;
+    border-top: 1px dashed #3a2418;
+    font-size: 0.95rem;
+    color: #5c3d2e;
+    text-align: center;
+    letter-spacing: 1px;
+    font-style: italic;
+}
+
+/* === BOTTOM: input === */
+.command-bar {
+    position: relative;
+    margin: 0 3rem 1.6rem;
+    background: #0a0604;
+    border: 3px solid #5c3d2e;
+    box-shadow:
+        inset 0 0 20px rgba(0,0,0,0.6),
+        0 0 0 4px #1a0e07;
+    z-index: 10;
+}
+.command-bar form {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem 1.2rem;
+}
+.command-bar .prompt {
+    font-family: "Press Start 2P", monospace;
+    font-size: 0.85rem;
+    color: #f4c261;
+    margin-right: 0.8rem;
+    letter-spacing: 1px;
+    user-select: none;
+    text-shadow: 0 0 6px rgba(244, 194, 97, 0.5);
+}
+.command-bar input[type=text] {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: "VT323", monospace;
+    font-size: 1.5rem;
+    color: #f4e4c1;
+    letter-spacing: 1px;
+    caret-color: #f4c261;
+}
+.command-bar input::placeholder {
+    color: #5c3d2e;
+    font-style: italic;
+}
+.command-bar .blink-cursor {
+    width: 12px;
+    height: 22px;
+    background: #f4c261;
+    margin-left: 0.4rem;
+    animation: blink 1s step-end infinite;
+}
+@keyframes blink {
+    0%, 49%   { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+.command-bar button {
+    margin-left: 1rem;
+    padding: 0.55rem 1.2rem;
+    background: #1a0e07;
+    border: 2px solid #f4c261;
+    font-family: "Press Start 2P", monospace;
+    font-size: 0.7rem;
+    color: #f4c261;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 120ms ease;
+}
+.command-bar button:hover {
+    background: #f4c261;
+    color: #1a0e07;
+    box-shadow: 0 0 12px rgba(244, 194, 97, 0.5);
+}
+.command-bar button:active { transform: translateY(1px); }
+
+/* === STATUS BAR (footer of shop) === */
+.shop-status {
+    position: relative;
+    padding: 0.8rem 3rem;
+    border-top: 2px solid #5c3d2e;
+    font-size: 1rem;
+    color: #5c3d2e;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+    z-index: 10;
+}
+.shop-status .tier-badge {
+    font-family: "Press Start 2P", monospace;
+    font-size: 0.6rem;
+    color: #f4c261;
+    padding: 3px 8px;
+    border: 1px solid #5c3d2e;
+    margin-left: 4px;
+    letter-spacing: 1px;
+}
+.shop-status code   { color: #f4c261; font-family: ui-monospace, monospace; }
+.shop-status a      { color: #f4c261; text-decoration: none; }
+.shop-status a:hover { text-shadow: 0 0 6px rgba(244, 194, 97, 0.6); }
+
+/* Responsive */
+@media (max-width: 920px) {
+    .shop-header  { flex-direction: column; gap: 1rem; padding: 1.2rem 1rem; text-align: center; }
+    .shop-sign    { flex-direction: column; gap: 0.4rem; align-items: center; }
+    .shop-sign .sub { margin-left: 0; }
+    .stage-grid   { grid-template-columns: 1fr; padding: 1.2rem; }
+    .command-bar  { margin: 0 1rem 1rem; }
+    .shop-status  { padding: 0.8rem 1rem; font-size: 0.9rem; }
+}
+</style>
+
+<div class="shop-stage">
+    <div class="dust"></div>
+    <div class="dust"></div>
+    <div class="dust"></div>
+    <div class="dust"></div>
+    <div class="dust"></div>
+
+    <header class="shop-header">
+        <div class="shop-sign">
+            <span class="emoji">💰</span>
+            <h1>CROOKED COIN</h1>
+            <span class="sub">변경 마을 잡화상 · 50년차</span>
+        </div>
+        <div class="gold-counter" title="너의 현재 소지금">
+            <div class="coin"></div>
+            <span class="amount">173 G</span>
+        </div>
+    </header>
+
+    <div class="stage-grid">
+        <div class="merchant-panel">
+            <div class="merchant-portrait">
+                <span class="silhouette">{% if persona %}{{ persona.emoji }}{% else %}💰{% endif %}</span>
+                <span class="nametag">
+                    {% if persona %}{{ persona.display_name }}{% else %}냉소적인 상인{% endif %}
+                </span>
+            </div>
+
+            <div class="dialogue-box">
+                <span class="speaker-tag">▼ 거래 중</span>
+                <div id="dialogue-thread">
+                    <div class="dialogue-empty">
+                        가게에 들어왔다.<br>
+                        상인이 너를 흘끗 쳐다본다.
+                        <span class="arrow">▼ 말을 걸어라 ▼</span>
+                    </div>
+                </div>
+                <span class="htmx-indicator">
+                    <span class="typing-dots">상인이 코를 만지작거린다</span>
+                </span>
+            </div>
+        </div>
+
+        <aside class="inventory-panel">
+            <div class="inventory-header">━━ 가게 진열대 ━━</div>
+            <div class="inventory-grid">
+                <div class="inv-item">
+                    <span class="icon">🛡️</span>
+                    <span class="name">가죽 갑옷</span>
+                    <span class="price">80 G</span>
+                </div>
+                <div class="inv-item">
+                    <span class="icon">🗡️</span>
+                    <span class="name">단검</span>
+                    <span class="price">50 G</span>
+                </div>
+                <div class="inv-item">
+                    <span class="icon">🌿</span>
+                    <span class="name">회복 약초</span>
+                    <span class="price">10 G</span>
+                </div>
+                <div class="inv-item">
+                    <span class="icon">📜</span>
+                    <span class="name">마법 두루마리</span>
+                    <span class="price">200 G</span>
+                </div>
+                <div class="inv-item">
+                    <span class="icon">🔥</span>
+                    <span class="name">횃불</span>
+                    <span class="price">5 G</span>
+                </div>
+                <div class="inv-item locked">
+                    <span class="icon">🧭</span>
+                    <span class="name">신비한 나침반</span>
+                    <span class="price">??? G</span>
+                </div>
+            </div>
+            <div class="shop-tagline">
+                * 환불 불가. 신용 거래 안 받음. *
+            </div>
+        </aside>
+    </div>
+
+    <div class="command-bar">
+        <form hx-post="/web/chat/cynical_merchant/messages"
+              hx-target="#dialogue-thread"
+              hx-swap="beforeend"
+              hx-on::before-request="document.querySelector('.dialogue-empty')?.remove()"
+              hx-on::after-request="this.reset(); const t = document.getElementById('dialogue-thread'); t.scrollTop = t.scrollHeight">
+            <span class="prompt">YOU ▶</span>
+            <input type="text"
+                   name="message"
+                   placeholder="상인에게 말을 걸어라..."
+                   autocomplete="off"
+                   autofocus
+                   required>
+            <span class="blink-cursor"></span>
+            <button type="submit">거래</button>
+        </form>
+    </div>
+
+    <div class="shop-status">
+        <span>
+            ◆ tier
+            <span class="tier-badge">T2</span>
+            · LoRA + vector RAG
+        </span>
+        <span>
+            persona · <code>cynical_merchant</code>
+        </span>
+        <span>
+            <a href="/demo/">← back to demos</a>
+        </span>
+    </div>
+</div>
+
+{% endblock %}
