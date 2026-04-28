@@ -50,6 +50,28 @@ class ChatTurn:
 
 
 @dataclass(frozen=True)
+class PersonaMetrics:
+    """Per-persona rollup for the /web/metrics dashboard (Step A5).
+    Built from chat_turns; complementary to AgentEvent log which lives
+    in core/session for the agentic flow."""
+
+    persona_id: str
+    user_turns: int
+    assistant_turns: int
+    tokens_out_total: int
+    latency_ms_total: int
+    last_activity_iso: str | None  # iso-format timestamp of newest turn
+
+    @property
+    def total_turns(self) -> int:
+        return self.user_turns + self.assistant_turns
+
+    @property
+    def avg_latency_ms(self) -> float:
+        return (self.latency_ms_total / self.assistant_turns) if self.assistant_turns else 0.0
+
+
+@dataclass(frozen=True)
 class RatingStats:
     """Aggregate of one persona's assistant-turn ratings — surfaced in
     the gallery + chat header to motivate further rating + show DPO yield."""
@@ -87,6 +109,10 @@ class ChatStore(Protocol):
     async def rating_stats(
         self, persona_id: str, user_id: str
     ) -> RatingStats: ...
+
+    async def metrics_for_user(
+        self, user_id: str
+    ) -> list[PersonaMetrics]: ...
 
 
 class InMemoryChatStore:
@@ -160,6 +186,30 @@ class InMemoryChatStore:
     ) -> "RatingStats":
         turns = await self.list_turns(persona_id, user_id)
         return _compute_rating_stats(turns)
+
+    async def metrics_for_user(self, user_id: str) -> list[PersonaMetrics]:
+        by_persona: dict[str, list[ChatTurn]] = {}
+        for t in self._turns:
+            if t.user_id != user_id:
+                continue
+            by_persona.setdefault(t.persona_id, []).append(t)
+        return [_compute_persona_metrics(pid, ts) for pid, ts in by_persona.items()]
+
+
+def _compute_persona_metrics(persona_id: str, turns: list[ChatTurn]) -> PersonaMetrics:
+    user_turns = sum(1 for t in turns if t.role == "user")
+    assistant_turns = sum(1 for t in turns if t.role == "assistant")
+    tokens_out_total = sum(t.tokens_out or 0 for t in turns if t.role == "assistant")
+    latency_ms_total = sum(t.latency_ms or 0 for t in turns if t.role == "assistant")
+    newest = max(turns, key=lambda t: t.created_at) if turns else None
+    return PersonaMetrics(
+        persona_id=persona_id,
+        user_turns=user_turns,
+        assistant_turns=assistant_turns,
+        tokens_out_total=tokens_out_total,
+        latency_ms_total=latency_ms_total,
+        last_activity_iso=newest.created_at.isoformat() if newest else None,
+    )
 
 
 def _compute_rating_stats(turns: list[ChatTurn]) -> "RatingStats":
@@ -339,3 +389,17 @@ class SqlChatStore:
         # 2 SQL aggregates + a separate dpo scan.
         turns = await self.list_turns(persona_id, user_id)
         return _compute_rating_stats(turns)
+
+    async def metrics_for_user(self, user_id: str) -> list[PersonaMetrics]:
+        async with self._sessionmaker() as session:
+            stmt = (
+                select(_ChatTurnRow)
+                .where(_ChatTurnRow.user_id == user_id)
+                .order_by(_ChatTurnRow.id.asc())
+            )
+            rows = (await session.execute(stmt)).scalars().all()
+        by_persona: dict[str, list[ChatTurn]] = {}
+        for row in rows:
+            t = row.to_dataclass()
+            by_persona.setdefault(t.persona_id, []).append(t)
+        return [_compute_persona_metrics(pid, ts) for pid, ts in by_persona.items()]

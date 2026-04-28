@@ -164,6 +164,34 @@ def build_personas_web_router(
             status_code=status.HTTP_303_SEE_OTHER,
         )
 
+    @router.get(
+        "/metrics",
+        response_class=HTMLResponse,
+        include_in_schema=False,
+    )
+    async def metrics_page(
+        request: Request,
+        user_id: str | None = Cookie(default=None),
+    ):
+        uid = _user(user_id)
+        rows = await chat_store.metrics_for_user(uid)
+        # Sort newest activity first
+        rows.sort(
+            key=lambda m: m.last_activity_iso or "",
+            reverse=True,
+        )
+        # Persona display map for nice rendering
+        all_personas = {p.persona_id: p for p in list_personas()}
+        return templates.TemplateResponse(
+            request,
+            "personas/metrics.html",
+            {
+                "metrics": rows,
+                "personas": all_personas,
+                "user_id": uid,
+            },
+        )
+
     @router.post(
         "/chat/{persona_id}/turns/{turn_id}/rate",
         response_class=HTMLResponse,

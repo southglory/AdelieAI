@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block main %}
+<h2>Metrics <span class="muted">({{ user_id }})</span></h2>
+<p class="muted" style="margin-top: -0.4rem;">
+    Per-persona activity rollup — turns, generated tokens, average latency.
+    Built from <code>chat_turns</code>; the agentic-flow event log lives in
+    <code>core/session</code> and surfaces in the sessions page.
+</p>
+
+{% if not metrics %}
+<p class="muted empty-hint" style="text-align: center; padding: 2rem 0;">
+    No activity yet. Start a chat with any persona to see numbers here.
+</p>
+{% else %}
+<table class="metrics-table">
+    <thead>
+        <tr>
+            <th>Persona</th>
+            <th class="num">User turns</th>
+            <th class="num">Assistant turns</th>
+            <th class="num">Tokens out</th>
+            <th class="num">Avg latency</th>
+            <th>Last activity</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for m in metrics %}
+        {% set p = personas.get(m.persona_id) %}
+        <tr>
+            <td>
+                {% if p %}
+                <a href="/web/chat/{{ p.persona_id }}">{{ p.emoji }} {{ p.display_name }}</a>
+                <span class="tier-pill">T{{ p.target_tier }}</span>
+                {% else %}
+                <code>{{ m.persona_id }}</code>
+                {% endif %}
+            </td>
+            <td class="num">{{ m.user_turns }}</td>
+            <td class="num">{{ m.assistant_turns }}</td>
+            <td class="num">{{ m.tokens_out_total }}</td>
+            <td class="num">
+                {% if m.assistant_turns %}{{ "%.0f"|format(m.avg_latency_ms) }} ms{% else %}—{% endif %}
+            </td>
+            <td><code class="ts">{{ m.last_activity_iso or "—" }}</code></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <th>Total ({{ metrics|length }} personas)</th>
+            <th class="num">{{ metrics|sum(attribute='user_turns') }}</th>
+            <th class="num">{{ metrics|sum(attribute='assistant_turns') }}</th>
+            <th class="num">{{ metrics|sum(attribute='tokens_out_total') }}</th>
+            <th></th>
+            <th></th>
+        </tr>
+    </tfoot>
+</table>
+{% endif %}
+
+<style>
+.metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+    margin-top: 1rem;
+}
+.metrics-table th, .metrics-table td {
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid var(--bd);
+    text-align: left;
+}
+.metrics-table thead th {
+    background: #f7f9fc;
+    font-weight: 600;
+    color: #3a4759;
+    border-bottom: 2px solid var(--bd);
+}
+.metrics-table tfoot th {
+    background: #fafafa;
+    border-top: 2px solid var(--bd);
+    font-family: ui-monospace, monospace;
+}
+.metrics-table .num {
+    text-align: right;
+    font-family: ui-monospace, monospace;
+}
+.metrics-table tr:hover td {
+    background: #f9fbfd;
+}
+.metrics-table .tier-pill {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0.05rem 0.35rem;
+    border: 1px solid #c7d9f5;
+    border-radius: 8px;
+    background: #e7f0ff;
+    color: #0d4eaa;
+    font-family: ui-monospace, monospace;
+    font-size: 0.78em;
+    font-weight: 600;
+}
+.metrics-table .ts {
+    color: #555;
+    font-size: 0.78em;
+}
+</style>
+{% endblock %}
