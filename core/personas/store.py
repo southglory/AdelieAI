@@ -35,6 +35,10 @@ class ChatTurn:
     tokens_out: int | None
     latency_ms: int | None
     created_at: datetime
+    # 5-tier user rating on assistant turns. 1 = bad, 5 = excellent. None
+    # = not rated yet. User-only on assistant rows; user rows stay None.
+    # Used to harvest chosen/rejected pairs for DPO (Step 6.2).
+    rating: int | None = None
 
 
 @runtime_checkable
@@ -48,6 +52,10 @@ class ChatStore(Protocol):
     async def reset(self, persona_id: str, user_id: str) -> int: ...
 
     async def turn_count(self, persona_id: str, user_id: str) -> int: ...
+
+    async def rate(
+        self, turn_id: int, rating: int | None
+    ) -> ChatTurn | None: ...
 
 
 class InMemoryChatStore:
@@ -77,6 +85,7 @@ class InMemoryChatStore:
             tokens_out=turn.tokens_out,
             latency_ms=turn.latency_ms,
             created_at=turn.created_at,
+            rating=turn.rating,
         )
         self._turns.append(stored)
         self._next_id += 1
@@ -93,6 +102,27 @@ class InMemoryChatStore:
 
     async def turn_count(self, persona_id: str, user_id: str) -> int:
         return len(await self.list_turns(persona_id, user_id))
+
+    async def rate(
+        self, turn_id: int, rating: int | None
+    ) -> ChatTurn | None:
+        for i, t in enumerate(self._turns):
+            if t.id == turn_id:
+                updated = ChatTurn(
+                    id=t.id,
+                    persona_id=t.persona_id,
+                    user_id=t.user_id,
+                    role=t.role,
+                    content=t.content,
+                    tokens_in=t.tokens_in,
+                    tokens_out=t.tokens_out,
+                    latency_ms=t.latency_ms,
+                    created_at=t.created_at,
+                    rating=rating,
+                )
+                self._turns[i] = updated
+                return updated
+        return None
 
 
 class _Base(DeclarativeBase):
@@ -111,6 +141,7 @@ class _ChatTurnRow(_Base):
     tokens_out: Mapped[int | None] = mapped_column(Integer, nullable=True)
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     def to_dataclass(self) -> ChatTurn:
         return ChatTurn(
@@ -123,6 +154,7 @@ class _ChatTurnRow(_Base):
             tokens_out=self.tokens_out,
             latency_ms=self.latency_ms,
             created_at=_aware(self.created_at),
+            rating=self.rating,
         )
 
 
@@ -146,6 +178,21 @@ class SqlChatStore:
     async def init_schema(self) -> None:
         async with self._engine.begin() as conn:
             await conn.run_sync(_Base.metadata.create_all)
+            # Defensive migration — Step 6.2 added `rating` column. Existing
+            # databases created before that don't have the column, so add
+            # it idempotently. Works on SQLite (default) and Postgres.
+            await conn.run_sync(self._ensure_rating_column)
+
+    @staticmethod
+    def _ensure_rating_column(sync_conn) -> None:  # type: ignore[no-untyped-def]
+        from sqlalchemy import inspect, text
+
+        inspector = inspect(sync_conn)
+        cols = {c["name"] for c in inspector.get_columns("chat_turns")}
+        if "rating" not in cols:
+            sync_conn.execute(
+                text("ALTER TABLE chat_turns ADD COLUMN rating INTEGER")
+            )
 
     async def dispose(self) -> None:
         await self._engine.dispose()
@@ -176,6 +223,7 @@ class SqlChatStore:
                 tokens_out=turn.tokens_out,
                 latency_ms=turn.latency_ms,
                 created_at=_aware(turn.created_at),
+                rating=turn.rating,
             )
             session.add(row)
             await session.commit()
@@ -200,3 +248,15 @@ class SqlChatStore:
             )
             rows = (await session.execute(stmt)).scalars().all()
             return len(rows)
+
+    async def rate(
+        self, turn_id: int, rating: int | None
+    ) -> ChatTurn | None:
+        async with self._sessionmaker() as session:
+            row = await session.get(_ChatTurnRow, turn_id)
+            if row is None:
+                return None
+            row.rating = rating
+            await session.commit()
+            await session.refresh(row)
+            return row.to_dataclass()

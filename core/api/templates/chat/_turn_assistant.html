@@ -1,4 +1,4 @@
-<div class="turn assistant">
+<div class="turn assistant" id="turn-{{ t.id }}">
     <div class="role">
         <span>{{ persona.emoji }} {{ persona.display_name }}</span>
         {% if t.latency_ms is not none and t.tokens_out is not none %}
@@ -6,4 +6,21 @@
         {% endif %}
     </div>
     <div class="body">{{ t.content }}</div>
+    {% if t.id %}
+    <div class="rating" role="radiogroup" aria-label="이 답변 평가 (1~5 점)">
+        {% for n in [1, 2, 3, 4, 5] %}
+        <button type="button"
+                class="star {% if t.rating and t.rating >= n %}filled{% endif %}"
+                hx-post="/web/chat/{{ persona.persona_id }}/turns/{{ t.id }}/rate"
+                hx-vals='{"rating": {{ n }}}'
+                hx-target="#turn-{{ t.id }}"
+                hx-swap="outerHTML"
+                aria-label="{{ n }}점"
+                title="{{ n }}점">{% if t.rating and t.rating >= n %}★{% else %}☆{% endif %}</button>
+        {% endfor %}
+        <span class="rating-label">
+            {% if t.rating %}{{ t.rating }}/5{% else %}평가 — DPO 데이터 수집{% endif %}
+        </span>
+    </div>
+    {% endif %}
 </div>

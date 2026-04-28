@@ -158,4 +158,37 @@ def build_personas_web_router(
             status_code=status.HTTP_303_SEE_OTHER,
         )
 
+    @router.post(
+        "/chat/{persona_id}/turns/{turn_id}/rate",
+        response_class=HTMLResponse,
+        include_in_schema=False,
+    )
+    async def chat_rate(
+        request: Request,
+        persona_id: str,
+        turn_id: int,
+        rating: int = Form(...),
+    ):
+        persona = get_persona(persona_id)
+        if persona is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        # Toggle: clicking the same rating again clears it.
+        if not (1 <= rating <= 5):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="rating must be 1..5",
+            )
+        existing = await chat_store.rate(turn_id, rating)
+        if existing is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="turn not found",
+            )
+        # Return the assistant turn fragment with updated rating widget.
+        return templates.TemplateResponse(
+            request,
+            "chat/_turn_assistant.html",
+            {"persona": persona, "t": existing},
+        )
+
     return router

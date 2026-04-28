@@ -169,3 +169,75 @@ def test_root_endpoint_lists_personas_module(client: TestClient) -> None:
     body = r.json()
     assert "personas" in body["modules"]
     assert body["chat_store"] == "InMemoryChatStore"
+
+
+# === 5-tier rating (Step 6.2) ===
+
+
+def _post_msg_get_assistant_id(client: TestClient, persona_id: str, msg: str) -> int:
+    """Helper — submit message, parse `id="turn-N"` from assistant fragment."""
+    import re
+    r = client.post(f"/web/chat/{persona_id}/messages", data={"message": msg})
+    assert r.status_code == 200
+    matches = re.findall(r'id="turn-(\d+)"', r.text)
+    assert matches, "no assistant turn id in response"
+    return int(matches[-1])
+
+
+def test_rating_widget_renders_in_assistant_turn(client: TestClient) -> None:
+    r = client.post(
+        "/web/chat/penguin_relaxed/messages",
+        data={"message": "별점 위젯 떠?"},
+    )
+    assert r.status_code == 200
+    assert 'class="rating"' in r.text
+    assert "DPO 데이터 수집" in r.text
+    # 5 star buttons
+    assert r.text.count('class="star') == 5
+
+
+def test_rate_persists_and_returns_filled_stars(client: TestClient) -> None:
+    turn_id = _post_msg_get_assistant_id(client, "penguin_relaxed", "rate me")
+    r = client.post(
+        f"/web/chat/penguin_relaxed/turns/{turn_id}/rate",
+        data={"rating": 4},
+    )
+    assert r.status_code == 200
+    # 4/5 → 4 filled, 1 unfilled
+    assert r.text.count("filled") == 4
+    assert "4/5" in r.text
+
+
+def test_rate_persists_across_thread_reload(client: TestClient) -> None:
+    turn_id = _post_msg_get_assistant_id(client, "penguin_relaxed", "stick")
+    client.post(
+        f"/web/chat/penguin_relaxed/turns/{turn_id}/rate",
+        data={"rating": 3},
+    )
+    page = client.get("/web/chat/penguin_relaxed")
+    assert "3/5" in page.text
+
+
+def test_rate_rejects_out_of_range(client: TestClient) -> None:
+    turn_id = _post_msg_get_assistant_id(client, "penguin_relaxed", "edge")
+    bad = client.post(
+        f"/web/chat/penguin_relaxed/turns/{turn_id}/rate",
+        data={"rating": 7},
+    )
+    assert bad.status_code == 400
+
+
+def test_rate_unknown_turn_404(client: TestClient) -> None:
+    r = client.post(
+        "/web/chat/penguin_relaxed/turns/99999/rate",
+        data={"rating": 3},
+    )
+    assert r.status_code == 404
+
+
+def test_rate_unknown_persona_404(client: TestClient) -> None:
+    r = client.post(
+        "/web/chat/dragon_lord/turns/1/rate",
+        data={"rating": 3},
+    )
+    assert r.status_code == 404

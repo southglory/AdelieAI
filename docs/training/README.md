@@ -25,10 +25,11 @@
 - ✅ MANIFEST.json + recipe.md 자동 생성
 - ✅ 처음부터 transformer (nanoGPT, 69M, ~5분 학습)
 - ✅ Pairwise judge 비교 harness
+- ✅ DPO 데이터 *수집* 인프라 — 5-tier 별점 UI + `scripts/export_dpo.py` (Step 6.2)
+- ❌ DPO *trainer* — pair 데이터 충분히 쌓이면 활성화 (v0.4)
 - ❌ Per-persona LoRA (현재 모두 v2 공유) — Step 6.1
 - ❌ Held-out val split + per-epoch 모니터링 — Step 6.1
 - ❌ jsonl-from-personas 소비 (현재는 dataset.py 인라인) — Step 6.1
-- ❌ DPO trainer (preferred-rejected pair) — v0.4 마일스톤
 - ❌ Distillation (7B → 1.5B) — v0.3 마일스톤
 
 ## 사용법
@@ -45,7 +46,25 @@ PYTHONUTF8=1 .venv/Scripts/python -X utf8 \
     scripts/compare_adapters.py \
     --adapter v1=models/ours/qwen-roleplay-v1 \
     --adapter v2=models/ours/qwen-roleplay-v2
+
+# DPO 페어 수집 — chat 채팅방에서 별점 매긴 turn → chosen/rejected jsonl
+PYTHONUTF8=1 .venv/Scripts/python -X utf8 \
+    scripts/export_dpo.py \
+    --persona cynical_merchant \
+    --out data/dpo/cynical_merchant.jsonl
 ```
+
+## DPO 데이터 수집 (Step 6.2)
+
+별점 1-5 점이 사용자가 채팅방에서 직접 매긴 *상대 선호*. 같은 prompt 가 동일 페르소나에 여러 번 답변되고 *그 중 하나는 ≥4 점, 다른 하나는 ≤2 점* 인 케이스가 모이면 한 쌍의 DPO `(chosen, rejected)` 가 된다.
+
+| 단계 | 위치 |
+|---|---|
+| 별점 위젯 | `core/api/templates/chat/_turn_assistant.html` (HTMX) |
+| 저장소 | `core/personas/store.py` 의 `ChatStore.rate(turn_id, rating)` |
+| API | `POST /web/chat/{persona_id}/turns/{turn_id}/rate` |
+| Export | [`scripts/export_dpo.py`](../../scripts/export_dpo.py) |
+| 데이터 형식 | `{persona_id, prompt, chosen, rejected, chosen_rating, rejected_rating}` JSONL |
 
 ## 평가
 
