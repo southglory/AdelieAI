@@ -8,7 +8,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![tests](https://img.shields.io/badge/tests-209%20passing-brightgreen.svg)](#testing)
+[![tests](https://img.shields.io/badge/tests-221%20passing-brightgreen.svg)](#testing)
 [![Persona Pack v0.1](https://img.shields.io/badge/persona%20pack-v0.1-blueviolet.svg)](docs/PERSONA_PACK.md)
 
 </div>
@@ -48,7 +48,7 @@ Three industry verticals showcase the tier ladder out of the box. Same engine, t
 |---|---|---|---|
 | [`/demo/gaming`](docs/screenshots/21_gaming_live.png) | 💰 `cynical_merchant` | **T2** | RPG shop scene — JRPG dialogue HUD, inventory mock, gold counter, blunt merchant voice |
 | [`/demo/legal`](docs/screenshots/22_legal_live.png) | 🔍 `cold_detective` | **T3** | Noir detective office — cork board with case summary, evidence memos, red string connectors, transcript paper, citation chips, `evidence_search` tool active |
-| [`/demo/knowledge`](docs/screenshots/24_knowledge_live.png) | 🐉 `ancient_dragon` | **T4** | Ancient archive — inline-SVG KG with 8 nodes (asserted edges solid, OWL-inferred edges dashed flowing), parchment-scroll dialogue, side-panel SPARQL query + reasoner output ("☑ consistent" + inferred triples), `RdfGraphRetriever` + `StubOWLReasoner` active |
+| [`/demo/knowledge`](docs/screenshots/24_knowledge_live.png) | 🐉 `ancient_dragon` | **T4** | Ancient archive — inline-SVG KG with 8 nodes (asserted edges solid, OWL-inferred edges dashed flowing), parchment-scroll dialogue, side-panel SPARQL query + reasoner output ("☑ consistent" + inferred triples), backed by **real `rdflib` + OWL-RL forward chaining** over a Turtle corpus (transitive `descendantOf+`, subClassOf inference) |
 
 <table>
   <tr>
@@ -121,7 +121,7 @@ Full spec: [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md). Roadmap to v0.2 adds 
 | **Training** | TRL `SFTTrainer` LoRA, plus a pure-PyTorch nanoGPT for from-scratch experiments |
 | **Logging** | Structured JSON + per-request id propagation |
 | **Quantization** | GGUF q4_k_m via llama-cpp-python; merged adapter → 4.4 GB single file (3.25× smaller) |
-| **Tests** | 209 unit + Playwright E2E walker |
+| **Tests** | 221 unit + Playwright E2E walker |
 
 ## Design principles
 
