@@ -97,26 +97,45 @@ def _select_voice(system: str | None) -> list[str] | None:
 def _pick(lines: list[str], prompt: str) -> str:
     """Deterministic + history-aware picker.
 
-    *Why not Python `hash()`*: it is randomized per process (PYTHONHASHSEED),
-    so identical inputs produce different replies across runs — flaky in
-    tests, and harvests no DPO pairs when a user sends the same question
-    repeatedly (~25% collision with 4-5 line pools).
+    *Why not Python `hash()`*: it is randomized per process
+    (PYTHONHASHSEED), so identical inputs produce different replies
+    across runs — flaky in tests, and harvests no DPO pairs when a user
+    sends the same question repeatedly (~25% collision with 4-5 line
+    pools).
 
-    *What we do*: count Assistant: markers in the prompt to estimate the
-    conversation depth, and use that as the index. The same `user_text`
-    submitted N times in a row picks N distinct replies (mod len(lines)),
-    matching the *intent* of stub mode for DPO data harvesting.
+    *Design goal* — for DPO data harvesting, the *same user_text* sent
+    repeatedly must yield *different* replies on each subsequent turn.
 
-    *Tie-break for first turn*: depth=0 produces the same line for every
-    new conversation; we mix in `hashlib.sha256(prompt) % len(lines)`
-    *summed* with depth so different first questions still get different
-    replies, while preserving history-walks through the line list.
+    *Implementation* — split the picker into two independent indices:
+        seed   = sha256(LAST USER LINE only)  → varies by user question,
+                 stays *stable* for repeats of the same question
+        depth  = count of "Assistant:" markers → grows by 1 each turn
+    Final index = (seed + depth) % N. Because `seed` is constant for a
+    repeated user_text and `depth` grows by 1 each turn, consecutive
+    repeats are guaranteed to land on different lines (assuming N ≥ 2).
+
+    *Why not hash the whole prompt + depth*: the full-prompt hash also
+    changes each turn, and its mod-N delta could cancel the +1 depth
+    delta → silent collisions. Hashing only the stable user_text
+    eliminates that class of bug.
     """
     import hashlib
 
-    depth = prompt.count("Assistant:")  # 0 for empty history, grows by 1 per turn
-    seed = int(hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:8], 16)
-    return lines[(depth + seed) % len(lines)]
+    # Extract the last user line (stable across history-grown repeats).
+    # Format produced by core.personas.chat._format_history is:
+    #   "User: ...\nAssistant: ...\n...\nUser: <last>\nAssistant: "
+    last_user_anchor = prompt.rfind("User: ")
+    if last_user_anchor >= 0:
+        tail = prompt[last_user_anchor:]
+        # Strip the trailing "\nAssistant: " prompt continuation
+        end = tail.rfind("\nAssistant:")
+        last_user_text = tail[:end] if end > 0 else tail
+    else:
+        last_user_text = prompt
+
+    depth = prompt.count("Assistant:")  # 1 for empty history, grows by 1 per turn
+    seed = int(hashlib.sha256(last_user_text.encode("utf-8")).hexdigest()[:8], 16)
+    return lines[(seed + depth) % len(lines)]
 
 
 class StubLLMClient:

@@ -285,45 +285,66 @@ def test_rating_summary_appears_after_first_rating(client: TestClient) -> None:
     assert "DPO 0" in page.text
 
 
-def test_dpo_pair_count_surfaces_after_good_and_bad(client: TestClient) -> None:
-    # Two assistant turns for the same prompt — one good, one bad → 1 pair.
-    # Stub picker is now history-aware (turn 1 vs turn 2 → different lines)
-    # so the pair survives harvest dedup. Restored from the direct-store
-    # workaround once ticket #62 was fixed.
-    t1 = _post_msg_get_assistant_id(client, "cynical_merchant", "할인 안 돼?")
-    t2 = _post_msg_get_assistant_id(client, "cynical_merchant", "할인 안 돼?")
-    client.post(
+def test_dpo_pair_count_surfaces_after_good_and_bad() -> None:
+    """End-to-end DPO harvest UI test using ScriptedLLMClient — same
+    prompt, two distinct scripted replies, then good/bad ratings.
+    ScriptedLLMClient is the *standard* test fixture for scenarios that
+    need exact reply control; StubLLMClient is for dev-mode voice
+    preview (best-effort, no guarantees)."""
+    from core.api.app import build_app
+    from core.personas.store import InMemoryChatStore
+    from core.serving.scripted_client import ScriptedLLMClient
+    from core.session.store_memory import InMemorySessionStore
+
+    app = build_app(
+        store=InMemorySessionStore(),
+        llm=ScriptedLLMClient([
+            "또 왔어? 살 거면 사라.",     # turn 2 (assistant)
+            "흠, 뭘 원해? 그냥 비켜.",   # turn 4 (assistant)
+        ]),
+        chat_store=InMemoryChatStore(),
+    )
+    c = TestClient(app)
+
+    t1 = _post_msg_get_assistant_id(c, "cynical_merchant", "할인 안 돼?")
+    t2 = _post_msg_get_assistant_id(c, "cynical_merchant", "할인 안 돼?")
+    c.post(
         f"/web/chat/cynical_merchant/turns/{t1}/rate", data={"rating": 3}
     )
-    client.post(
+    c.post(
         f"/web/chat/cynical_merchant/turns/{t2}/rate", data={"rating": 1}
     )
-    gallery = client.get("/web/personas")
+    gallery = c.get("/web/personas")
     assert "DPO 1" in gallery.text
-    thread = client.get("/web/chat/cynical_merchant")
+    thread = c.get("/web/chat/cynical_merchant")
     assert "header-rating-summary" in thread.text
     assert "DPO 1" in thread.text
 
 
-def test_stub_returns_different_replies_for_repeat_prompt(client: TestClient) -> None:
-    """Regression for ticket #62 — same user_text twice must produce two
-    distinct stub replies (history-aware picker)."""
+def test_stub_provides_best_effort_variety_for_repeat_prompt(
+    client: TestClient,
+) -> None:
+    """Stub mode delivers *best-effort* variety for repeat prompts — for
+    real test scenarios needing exact sequences, use ScriptedLLMClient.
+
+    Asserts only that the first two repeats are distinct (achievable by
+    any reasonable picker). The actual rotation guarantee (last_user_text
+    seed + depth rotation) is exercised in test_stub_client.py."""
+    import re
+    def _bodies(html: str) -> list[str]:
+        return re.findall(r'<div class="body">([\s\S]*?)</div>', html)
+
     r1 = client.post(
         "/web/chat/cynical_merchant/messages", data={"message": "외상?"}
     )
     r2 = client.post(
         "/web/chat/cynical_merchant/messages", data={"message": "외상?"}
     )
-    # Pull the .body of the assistant turn out of each response.
-    import re
-    def _body(html: str) -> str:
-        m = re.search(r'<div class="body">([\s\S]*?)</div>', html)
-        # Find the second body (assistant) — first is user
-        bodies = re.findall(r'<div class="body">([\s\S]*?)</div>', html)
-        return bodies[-1]
-    assert _body(r1.text) != _body(r2.text), (
-        "stub returned identical replies for repeat prompt — DPO harvest "
-        "would dedup. Picker must be history-aware (ticket #62)."
+    a1 = _bodies(r1.text)[-1]
+    a2 = _bodies(r2.text)[-1]
+    assert a1 != a2, (
+        f"stub mode collapsed repeat prompts to identical replies. "
+        f"Best-effort variety contract broken.\n  a1: {a1!r}\n  a2: {a2!r}"
     )
 
 

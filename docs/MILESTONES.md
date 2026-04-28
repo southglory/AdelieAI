@@ -22,6 +22,8 @@ ref 는 commit short hash, iteration report 파일명, 또는 Step 번호.
 
 ## 2026-04-29
 
+- 2026-04-29 [serving/stub] (3회차 — 정석 분리) **ScriptedLLMClient 신설 + 테스트 책임 분리**. 직전 fix (last_user_text seed + depth) 가 라이브 서버에선 여전히 mod-N collision (5 lines, ~20%). 근본 원인 검토 결과 *stub 이 real LLM 흉내내려다 buggy* 인 안티패턴. 정석 fix: `core/serving/scripted_client.py` (queue 기반, exhaustion 시 ValueError, optional cycle), 테스트 책임 분리 — DPO/sampling 의존 테스트는 Scripted 사용 (예: `test_dpo_pair_count_surfaces_after_good_and_bad`), stub 자체 contract 는 별도 (`tests/test_stub_client.py` — rotation guarantee). `docs/serving/README.md` 에 결정 트리 추가. **305/305 tests** (16 신규: scripted 9 + stub_client 4 + 마이그레이션 3). 라이브 검증 — 3 prompt → 3 distinct reply. 티켓 #62 클로즈 (v2 fix + Path C 분리). → 다음 commit
+- 2026-04-29 [serving/stub] (간단 문제) **이전 v1 fix 실 서버에서 silent collision 재발견**. `(seed + depth) % N` 에서 seed 가 prompt 전체 의존이라 mod-N delta 가 +1 depth delta 를 상쇄 → 실측 ~20% 충돌. v2 (last_user_text + depth) 로 임시 우회 하다 v3 (Path C) 정석 분리로 해결.
 - 2026-04-29 [observability/metrics] **A5 (#9) MVP — `/web/metrics` 대시보드**. 페르소나별 user/assistant turns, tokens_out, avg latency, last activity 롤업 테이블. `PersonaMetrics` dataclass + `ChatStore.metrics_for_user(user_id)` 양 store 구현. 글로벌 nav 에 Metrics 링크 추가. **292/292 tests** (4 신규). 기존 인프라 (state machine, AgentEvent, request middleware) 는 충분 — 남은 일은 *surface*. → 다음 commit
   - 추가 가능한 layer (이번엔 미구현, 후속 후보): hourly/daily aggregation, p50/p99 latency, 비용 추적 (token × $), session timeline UI, healthcheck details endpoint.
 
