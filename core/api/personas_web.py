@@ -14,6 +14,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from core.personas.chat import submit_chat_turn
+from core.personas.grounding import build_grounding_context
 from core.personas.registry import get_persona, list_personas
 from core.personas.store import ChatStore
 from core.serving.protocols import GenerationParams, LLMClient
@@ -110,6 +111,16 @@ def build_personas_web_router(
             top_p=top_p,
             top_k=top_k,
         )
+        # Per-turn grounding: knowledge personas get KG triples for
+        # the speaker, legal personas get evidence_search hits keyed
+        # off the user's message. Avoids hallucinated lore without
+        # requiring full LLM tool-calling wiring.
+        grounding = build_grounding_context(
+            persona,
+            user_text=message,
+            graph_retriever=getattr(request.app.state, "graph_retriever", None),
+            tool_registry=getattr(request.app.state, "tool_registry", None),
+        )
         user_turn, assistant_turn = await submit_chat_turn(
             chat_store=chat_store,
             llm=llm,
@@ -117,6 +128,7 @@ def build_personas_web_router(
             user_id=uid,
             user_text=message,
             params=params,
+            grounding_context=grounding,
         )
         return templates.TemplateResponse(
             request,

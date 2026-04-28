@@ -38,17 +38,26 @@ async def submit_chat_turn(
     user_id: str,
     user_text: str,
     params: GenerationParams | None = None,
+    grounding_context: str | None = None,
 ) -> tuple[ChatTurn, ChatTurn]:
     """Persist the user message, run the LLM, persist the assistant
     reply, return both turns in order.
+
+    `grounding_context` (optional) is appended to `persona.system_prompt`
+    for this turn's generation only. It carries per-turn facts retrieved
+    from a KG (knowledge personas) or a tool registry (legal personas)
+    so the LLM does not have to fabricate domain-specific lore.
     """
     user_text = user_text.strip()
     if not user_text:
         raise ValueError("user_text is empty")
 
     base_params = params or GenerationParams()
+    augmented_system = persona.system_prompt
+    if grounding_context:
+        augmented_system = persona.system_prompt + grounding_context
     persona_params = base_params.model_copy(
-        update={"system": persona.system_prompt}
+        update={"system": augmented_system}
     )
 
     history = await chat_store.list_turns(persona.persona_id, user_id)
