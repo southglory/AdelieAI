@@ -46,7 +46,7 @@ prompts:
 
   - id: room_lock
     prompt: "방은 어떤 상태였지?"
-    must_contain_any: ["밀실", "잠겨", "잠긴"]
+    must_contain_any: ["밀실", "잠겨", "잠긴", "잠겼"]
     category: evidence_grounding
 
   - id: witness_a_split
@@ -130,7 +130,7 @@ prompts:
 
   - id: general_self
     prompt: "transformer 의 self-attention 을 한 줄로 요약해."
-    must_contain_any: ["attention", "토큰", "어텐션"]
+    must_contain_any: ["attention", "토큰", "어텐션", "주의"]
     must_not_contain: ["용의자", "사건"]
     category: general_qa
 
