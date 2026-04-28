@@ -27,8 +27,10 @@ from core.training.dataset import (
     GENERAL_PAIRS,
     ROLEPLAY_PAIRS,
     build_mixed_dataset,
+    build_persona_dataset,
     build_roleplay_dataset,
     dataset_stats,
+    load_persona_pairs,
 )
 from core.training.lora_config import default_lora_config
 
@@ -47,6 +49,9 @@ def train_lora(
     warmup_ratio: float = 0.05,
     save_recipe: bool = True,
     dataset_kind: str = "roleplay",
+    persona_id: str | None = None,
+    persona_system_prompt: str | None = None,
+    val_ratio: float = 0.2,
 ) -> dict:
     """Run the full LoRA fine-tune. Returns a stats dict suitable for
     logging or for emitting into the output MANIFEST.
@@ -56,6 +61,14 @@ def train_lora(
       - "mixed":    ROLEPLAY_PAIRS + GENERAL_PAIRS (v2 — preserves
                     generalisation by also showing non-character
                     Q&A under the general system prompt)
+      - "persona":  Load `personas/{persona_id}/dialogue_pairs.jsonl`
+                    + GENERAL_PAIRS, wrap with the persona's own
+                    system prompt. Step 6.1 — per-persona LoRA.
+
+    val_ratio:
+      - When > 0 and `dataset_kind == "persona"`, the dataset is split
+        80/20 (default) and val loss is logged each epoch via the
+        SFTTrainer's eval_dataset hook. Set to 0 to skip evaluation.
     """
     import torch
     from peft import get_peft_model
@@ -91,7 +104,25 @@ def train_lora(
     model = get_peft_model(model, lora_cfg)
     trainable, total = model.get_nb_trainable_parameters()
 
-    if dataset_kind == "mixed":
+    val_ds = None
+    if dataset_kind == "persona":
+        if not persona_id:
+            raise ValueError("persona_id required when dataset_kind='persona'")
+        train_ds, val_ds = build_persona_dataset(
+            persona_id,
+            persona_system_prompt=persona_system_prompt,
+            val_ratio=val_ratio,
+        )
+        persona_pairs = load_persona_pairs(persona_id)
+        stats = {
+            "n_pairs": len(persona_pairs) + len(GENERAL_PAIRS),
+            "n_persona": len(persona_pairs),
+            "n_general": len(GENERAL_PAIRS),
+            "persona_id": persona_id,
+            "val_ratio": val_ratio,
+            "val_size": len(val_ds) if val_ds is not None else 0,
+        }
+    elif dataset_kind == "mixed":
         train_ds = build_mixed_dataset()
         stats = {
             "n_pairs": len(ROLEPLAY_PAIRS) + len(GENERAL_PAIRS),
@@ -102,7 +133,7 @@ def train_lora(
         train_ds = build_roleplay_dataset()
         stats = dataset_stats()
 
-    sft_cfg = SFTConfig(
+    sft_cfg_kwargs = dict(
         output_dir=str(output_dir),
         num_train_epochs=num_epochs,
         per_device_train_batch_size=per_device_batch_size,
@@ -119,13 +150,22 @@ def train_lora(
         gradient_checkpointing_kwargs={"use_reentrant": False},
         remove_unused_columns=False,
     )
+    if val_ds is not None and len(val_ds) > 0:
+        sft_cfg_kwargs.update(
+            eval_strategy="epoch",
+            per_device_eval_batch_size=per_device_batch_size,
+        )
+    sft_cfg = SFTConfig(**sft_cfg_kwargs)
 
-    trainer = SFTTrainer(
+    trainer_kwargs = dict(
         model=model,
         args=sft_cfg,
         train_dataset=train_ds,
         processing_class=tokenizer,
     )
+    if val_ds is not None and len(val_ds) > 0:
+        trainer_kwargs["eval_dataset"] = val_ds
+    trainer = SFTTrainer(**trainer_kwargs)
 
     t0 = time.perf_counter()
     train_result = trainer.train()
@@ -146,9 +186,24 @@ def train_lora(
         "grad_accum": grad_accum,
         "max_seq_length": max_seq_length,
         "n_pairs": stats["n_pairs"],
+        "dataset_kind": dataset_kind,
         "elapsed_seconds": round(elapsed, 1),
         "final_loss": float(train_result.training_loss),
     }
+    # Per-persona val metrics (Step 6.1) — captured from the trainer's
+    # log_history if eval_strategy was active.
+    if val_ds is not None and len(val_ds) > 0:
+        eval_logs = [
+            log_row for log_row in trainer.state.log_history
+            if "eval_loss" in log_row
+        ]
+        if eval_logs:
+            summary["val_loss_per_epoch"] = [
+                round(float(row["eval_loss"]), 4) for row in eval_logs
+            ]
+            summary["val_loss_final"] = summary["val_loss_per_epoch"][-1]
+    if "persona_id" in stats:
+        summary["persona_id"] = stats["persona_id"]
     log.info("lora_train_done", extra=summary)
 
     if save_recipe:
