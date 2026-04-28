@@ -38,6 +38,14 @@
         <h3>Persona</h3>
         <dl>
             <dt>id</dt><dd><code>{{ persona.persona_id }}</code></dd>
+            <dt>tier</dt><dd><code>T{{ persona.target_tier }}</code></dd>
+            <dt>industry</dt><dd>
+                {% if persona.industry == "general" %}
+                    <code>general</code>
+                {% else %}
+                    <code><a href="/demo/{{ persona.industry }}" style="color: #0d6efd;">{{ persona.industry }} ↗</a></code>
+                {% endif %}
+            </dd>
             <dt>base</dt><dd><code>{{ persona.base_model_hint.split('/')[-1] }}</code></dd>
             {% if persona.adapter_hint %}<dt>adapter</dt><dd><code>{{ persona.adapter_hint }}</code></dd>{% endif %}
             <dt>RAG</dt><dd>{{ "on" if persona.rag_enabled else "off" }}</dd>

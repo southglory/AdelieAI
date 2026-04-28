@@ -33,10 +33,50 @@
     transform: translateY(-1px);
     text-decoration: none;
 }
+.persona-card .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
 .persona-card .emoji {
     font-size: 2.2rem;
     line-height: 1;
 }
+.tier-badge {
+    font-family: ui-monospace, monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 3px 7px;
+    border-radius: 3px;
+}
+.tier-T1 { background: #f1f3f5; color: #6c757d; border: 1px solid #ced4da; }
+.tier-T2 { background: #e7f5ee; color: #1a7548; border: 1px solid #b6e3c8; }
+.tier-T3 { background: #fff4e0; color: #b46a00; border: 1px solid #f5cf95; }
+.tier-T4 { background: #ede7f6; color: #5e3aa1; border: 1px solid #c8b6e6; }
+.tier-T5 { background: #ffe9ec; color: #b02a4c; border: 1px solid #f5b7c0; }
+
+.industry-row { margin-top: -0.1rem; }
+.industry-pill {
+    display: inline-block;
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #f1f3f5;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+.industry-pill code {
+    font-size: 0.95em;
+    color: inherit;
+    background: none;
+}
+.industry-gaming    { background: #fff4e0; color: #a4660a; border-color: #f5cf95; }
+.industry-legal     { background: #e9ecef; color: #343a40; border-color: #adb5bd; }
+.industry-knowledge { background: #ede7f6; color: #5e3aa1; border-color: #c8b6e6; }
+.industry-general   { background: #e7f5ee; color: #1a7548; border-color: #b6e3c8; }
+
 .persona-card .name {
     font-weight: 600;
     font-size: 1.05em;
