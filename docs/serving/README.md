@@ -9,9 +9,26 @@
 ## 핵심 파일
 
 - [`core/serving/protocols.py`](../../core/serving/protocols.py) — `LLMClient`, `GenerationParams`, `GenerationResult`, `StreamEvent`
-- [`core/serving/stub_client.py`](../../core/serving/stub_client.py) — 모델 없는 fallback (페르소나별 canned voice)
+- [`core/serving/stub_client.py`](../../core/serving/stub_client.py) — 모델 없는 dev fallback (페르소나별 canned voice)
+- [`core/serving/scripted_client.py`](../../core/serving/scripted_client.py) — 테스트용 큐 기반 mock (정확한 시퀀스 제어)
 - [`core/serving/transformers_client.py`](../../core/serving/transformers_client.py) — HuggingFace transformers + LoRA 어댑터 자동 로드
 - [`core/serving/gguf_client.py`](../../core/serving/gguf_client.py) — llama-cpp-python 으로 GGUF 양자화 모델
+
+## 어떤 클라이언트를 쓰나 (결정 트리)
+
+```
+실제 모델 로드 가능 (weights 존재) — 프로덕션 / dev 풀 스택
+    → TransformersClient (FP16/bf16 + LoRA) 또는 GGUFClient (양자화)
+
+dev 모드, 모델 weights 없음 — voice 미리보기 ("이 페르소나 어떻게 들리나")
+    → StubLLMClient — 페르소나별 canned, 결정적, *best-effort* 변동성
+
+테스트가 *정확한* 응답 시퀀스를 제어하고 싶음 — DPO 흐름, 시나리오 검증
+    → ScriptedLLMClient([reply1, reply2, ...])
+       exhaustion 시 ValueError, optional cycle=True
+```
+
+> **Stub 의 한계**: dev voice 미리보기 용도. 같은 prompt 반복 시 *best-effort* 다른 줄 (티켓 #62 의 v2 fix — last_user_text seed + depth rotation) 이지만 *guarantee 아님*. 테스트가 정확한 시퀀스 필요하면 ScriptedLLMClient 사용. 이 분리는 "stub 이 real LLM 흉내내려다 collision 버그 만드는" 안티패턴 회피용 — `tests/test_stub_client.py` 와 `tests/test_scripted_client.py` 가 두 영역의 contract 명시.
 
 ## 현재 상태 (v0.2.5)
 
