@@ -1,5 +1,5 @@
-> **Slot npc3** — 디자인 후 디렉터리명을 `{persona_id}` 로 rename.
-# {Display Name}
+> **Slot `cynical_merchant`** · vertical: **gaming** · target_tier: **T2** · 시트 작성 대기
+# 냉소적인 상인
 
 > 빈 시트. 한 슬롯씩 채운다. 가이드: [`docs/persona_design_guide.md`](../../docs/persona_design_guide.md)
 

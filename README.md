@@ -8,7 +8,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![tests](https://img.shields.io/badge/tests-168%20passing-brightgreen.svg)](#testing)
+[![tests](https://img.shields.io/badge/tests-177%20passing-brightgreen.svg)](#testing)
 [![Persona Pack v0.1](https://img.shields.io/badge/persona%20pack-v0.1-blueviolet.svg)](docs/PERSONA_PACK.md)
 
 </div>
@@ -27,6 +27,20 @@ A pipeline that takes you from **persona idea → deployable character**:
 6. Drop into a game NPC, Discord bot, customer-service worker, or CLI chat
 
 Each `.adelie` pack is a single character with consistent voice, optional RAG-grounded knowledge, and a reproducible training recipe.
+
+## Choose your tier
+
+A persona's tech needs depend on the use case. AdelieAI is built as a **tiered stack** so you can dial in the right depth without paying for what you don't use:
+
+| Tier | Use case | What's added |
+|---|---|---|
+| **T1 — Toy** | prototype chatbot | system prompt only |
+| **T2 — Standard NPC** ✨ | game NPCs, brand chat, companions | + LoRA + vector RAG + quantization |
+| **T3 — Vertical Advisor** | code helper, customer support | + DPO, tool-use, retrieval-as-tool |
+| **T4 — Domain Expert** | legal/medical advisor | + RDF/OWL KG, OWL reasoner |
+| **T5 — Multi-agent Quest** | game world, simulation | + vLLM multi-LoRA, LangGraph orchestration |
+
+Three industry verticals showcase the tier ladder out of the box: **`/demo/gaming`** (T2 — `cynical_merchant`), **`/demo/legal`** (T3 — `cold_detective`), **`/demo/knowledge`** (T4 — `ancient_dragon`). `/health` introspects which tier the running build supports. Full framework + decision tree: [`docs/CAPABILITY_TIERS.md`](docs/CAPABILITY_TIERS.md).
 
 ## Why a *persona engine*?
 
@@ -87,7 +101,7 @@ Full spec: [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md). Roadmap to v0.2 adds 
 | **Training** | TRL `SFTTrainer` LoRA, plus a pure-PyTorch nanoGPT for from-scratch experiments |
 | **Logging** | Structured JSON + per-request id propagation |
 | **Quantization** | GGUF q4_k_m via llama-cpp-python; merged adapter → 4.4 GB single file (3.25× smaller) |
-| **Tests** | 168 unit + Playwright E2E walker |
+| **Tests** | 177 unit + Playwright E2E walker |
 
 ## Design principles
 
