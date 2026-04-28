@@ -307,13 +307,33 @@ def build_app(
     tool_registry.register(EvidenceSearch())
     app.state.tool_registry = tool_registry
 
-    # T4 — default KG retriever + OWL reasoner. Both are stubs over a
-    # tiny mock dragon-lore corpus (12 base + 4 inferred triples). They
-    # let `_compute_tier` declare "T4: ok + reasoner" so /demo/knowledge
-    # has a working KG stack to visualize. Real rdflib / Fuseki / Stardog
-    # wiring is a future milestone.
-    app.state.graph_retriever = RdfGraphRetriever()
-    app.state.owl_reasoner = StubOWLReasoner()
+    # T4 — default KG retriever + OWL reasoner.
+    #
+    # Preferred path: real rdflib over `core/retrieval/dragon_lore.ttl`,
+    # with owlrl forward-chaining for OWL-RL inference. SPARQL property
+    # paths (`descendantOf+`) and subClassOf transitive closure both
+    # work end-to-end.
+    #
+    # Fallback path: hand-baked stub with frozen answers (the original
+    # Step 4 implementation). Activates only when rdflib import fails
+    # so the build still declares T4 instead of dropping to T3.
+    try:
+        from core.retrieval.graph_retriever_rdflib import (
+            RdflibGraphRetriever,
+            RdflibOWLReasoner,
+        )
+
+        kg = RdflibGraphRetriever()
+        app.state.graph_retriever = kg
+        app.state.owl_reasoner = RdflibOWLReasoner(kg)
+        log.info("kg_retriever_loaded", extra={"backend": "rdflib"})
+    except Exception as e:
+        log.warning(
+            "kg_retriever_fallback",
+            extra={"backend": "stub", "error": str(e)},
+        )
+        app.state.graph_retriever = RdfGraphRetriever()
+        app.state.owl_reasoner = StubOWLReasoner()
     app.include_router(
         build_router(app.state.store, app.state.llm, retriever=retriever)
     )

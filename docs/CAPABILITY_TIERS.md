@@ -58,7 +58,7 @@
 | **Voice 정확도** | hallucination 비용 매우 높음 — KG 와 axiom 기반 검증 의무 |
 | **지식** | 구조화된 관계 + 추론 가능한 logic (transitive, equivalent class 등) |
 | **하드웨어** | 서버 GPU + KG 서버 (Fuseki / GraphDB / Stardog) |
-| **AdelieAI** | ❌ `core/retrieval/graph_retriever.py` Protocol 만. rdflib · OWL reasoner 통합 미구현 |
+| **AdelieAI** | ✅ **rdflib + owlrl 통합 완료** — `core/retrieval/graph_retriever_rdflib.py` 가 Turtle 파일 (`dragon_lore.ttl`) 을 파싱해 SPARQL 1.1 (transitive `descendantOf+`) 실행. `RdflibOWLReasoner` 가 OWL-RL forward chaining 으로 subClassOf 전이 + 클래스 멤버십 추론. 의존성 없을 때는 hardcoded stub 으로 graceful degrade. |
 
 ### T5 — Multi-agent Quest
 

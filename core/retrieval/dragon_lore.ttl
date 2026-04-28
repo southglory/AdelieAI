@@ -1,0 +1,47 @@
+@prefix adel: <http://adelie.local/lore#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# Dragon-lore mock corpus used by /demo/knowledge.
+# Asserted only — inferred triples (subClassOf transitive closure,
+# transitive descendantOf) are derived at runtime by the OWL/RDFS
+# reasoner, not stored here.
+
+# Class hierarchy
+adel:Dragon       a            owl:Class .
+adel:WingedBeing  a            owl:Class .
+adel:Dragon       rdfs:subClassOf  adel:WingedBeing .
+
+# Property hierarchy — descendantOf is transitive
+adel:descendantOf  a   owl:TransitiveProperty .
+
+# The speaker
+adel:Self        a               adel:Dragon ;
+                 adel:age        "1247"^^xsd:integer ;
+                 adel:nameLost   false ;
+                 adel:lairIn     adel:Erebor ;
+                 adel:descendantOf  adel:Vyrnaes .
+
+# Mother
+adel:Vyrnaes     a               adel:Dragon ;
+                 adel:descendantOf  adel:Sothryn .
+
+# Grandmother
+adel:Sothryn     a               adel:Dragon ;
+                 adel:nameLost   true .
+
+# Lair / mountain
+adel:Erebor      a                  adel:Mountain ;
+                 adel:hostsRace     adel:Dwarf ;
+                 adel:containsTreasure  adel:Arkenstone ;
+                 adel:wasAttackedBy adel:Self .
+
+# Treasure
+adel:Arkenstone  a            adel:Treasure ;
+                 adel:discoveredBy  adel:Thror .
+
+# Person
+adel:Thror       a            adel:DwarfKing ;
+                 adel:lineageOf  adel:Dwarf .
