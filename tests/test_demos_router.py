@@ -84,10 +84,27 @@ def test_legal_demo_has_noir_chrome(client: TestClient) -> None:
     assert "tier T3" in body
 
 
-def test_knowledge_demo_uses_placeholder(client: TestClient) -> None:
-    """knowledge still on the placeholder pending Step 4 design pass."""
+def test_knowledge_demo_has_archive_chrome(client: TestClient) -> None:
+    """knowledge vertical was custom-designed in Step 4 — verify the
+    distinctive ancient-archive chrome survives."""
     r = client.get("/demo/knowledge")
-    assert "demo-placeholder" in r.text
+    body = r.text
+    assert "ANCIENT ARCHIVE" in body  # archive title
+    assert "archive-stage" in body  # full-bleed scene container
+    assert "kg-svg" in body  # inline SVG knowledge graph
+    assert "/web/chat/ancient_dragon/messages" in body  # backend wire
+    assert "Cinzel" in body  # display font import (Roman inscription)
+    assert "Cormorant+Garamond" in body  # body serif font import
+    # KG nodes
+    for node in (":Self", ":Vyrnaes", ":Sothryn", ":Erebor", ":Arkenstone", ":Thrór", ":Dragon", ":WingedBeing"):
+        assert node in body, f"missing KG node: {node}"
+    # SPARQL trace + OWL reasoner panels
+    assert "PREFIX" in body and "SELECT" in body and "WHERE" in body
+    assert "consistent" in body
+    assert "subClassOf" in body
+    assert "transitive" in body
+    # Tier badge
+    assert "tier T4" in body
 
 
 def test_health_exposes_tier(client: TestClient) -> None:
@@ -107,15 +124,17 @@ def test_root_exposes_tier_summary(client: TestClient) -> None:
     assert "tier_max" in body
 
 
-def test_stub_build_reports_t3_via_default_tool_registry(client: TestClient) -> None:
-    """StubLLMClient + no retriever, but default ToolRegistry registers
-    evidence_search → tier reaches T3. T2/T4/T5 still missing because
-    no real LLM, no graph retriever, no multi-agent runner."""
+def test_stub_build_reports_t4_via_default_kg_retriever(client: TestClient) -> None:
+    """StubLLMClient + no vector RAG, but default ToolRegistry +
+    default RdfGraphRetriever + StubOWLReasoner are registered →
+    tier reaches T4. T2 (vector RAG) and T5 (multi-agent runner)
+    still missing in the stub build."""
     body = client.get("/health").json()
-    assert body["tier"] == 3
+    assert body["tier"] == 4
     assert "ok" in body["tier_status"]["T3"]
+    assert "ok" in body["tier_status"]["T4"]
+    assert "reasoner" in body["tier_status"]["T4"]
     assert "missing" in body["tier_status"]["T2"]  # no real LLM, no vector RAG
-    assert "missing" in body["tier_status"]["T4"]
     assert "missing" in body["tier_status"]["T5"]
 
 
