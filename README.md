@@ -205,6 +205,10 @@ PYTHONUTF8=1 .venv/Scripts/uvicorn core.api.app:app --port 8770
 
 [`docs/TRAINING.md`](docs/TRAINING.md) — when to LoRA vs prompt vs full fine-tune, dataset rules, hyperparameter rationale (`r=16`, `α=32`, `lr=2e-4`, 4 epochs), v1 → v2 lessons, known traps.
 
+## Design a new persona
+
+Want a sixth character? `personas/_template/` is the starting point — duplicate it, fill in the sheet, write 60 + 60 dialogue pairs, train. [`docs/persona_design_guide.md`](docs/persona_design_guide.md) walks through the design decisions, the good/bad pair examples, and seven traps from the v1 → v2 cycle. Five empty slots (`personas/npc1/` … `personas/npc5/`) are pre-allocated for the v0.3 multi-persona work (experiments 09 · 11 · 12 in the `differentia-llm` sibling repo).
+
 ## Compare personas
 
 ```bash
