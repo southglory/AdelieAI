@@ -99,6 +99,59 @@ Three Korean role-play personas (penguin / fish / knight) ship out of the box. C
 
 > Regenerate any time with `scripts/capture_screenshots.py` (legacy gallery + chat) or `scripts/capture_step6_screenshots.py` (rating widget + DPO badges + metrics) — Playwright walkers that seed via HTTP and snap PNGs against a running console.
 
+## Hardware footprint
+
+What it actually costs to train / run AdelieAI on a single RTX 3090 (24 GB).
+
+### Training a LoRA adapter (`scripts/train_lora_roleplay.py`)
+
+| Resource | Usage | Why |
+|---|---|---|
+| **Peak VRAM** | ~22–23 GB | 7B base (bf16) + LoRA r=16 + AdamW optimizer state + KV cache during eval |
+| **System RAM** | ~10–15 GB | HF Transformers load + dataset cache |
+| **Disk (output)** | ~80 MB / adapter | LoRA r=16 → `models/ours/qwen-roleplay-v2/adapter.safetensors` |
+| **Wall-clock** | ~25–30 min | 60 role-play + 60 general pairs × 4 epochs |
+| **Tricks** | `bf16=True` · `gradient_checkpointing=True` · `per_device_batch=2` · `grad_accum=4` (effective batch 8) | Without checkpointing the run goes OOM at 24 GB |
+
+> 13B+ needs **QLoRA** (4-bit quantized base) to fit. 7B is the sweet spot for a 24 GB consumer card.
+
+### Inference (serving)
+
+| Backend | VRAM | RAM | Disk |
+|---|---|---|---|
+| `StubLLMClient` (no model) | 0 | negligible | 0 |
+| `TransformersClient` FP16/bf16 + LoRA | ~14 GB | ~6 GB | ~14 GB |
+| `GGUFClient` q4_k_m (CPU) | 0 | ~5 GB | ~4.4 GB |
+| (planned) AWQ q4 (GPU) | ~5 GB | — | ~5 GB |
+
+### KV cache — the inference memory cost that surprises people
+
+Transformer self-attention reuses every prior token's K/V on each new step. The cache is what makes generation `O(N)` instead of `O(N²)`, but it costs memory that scales with context length.
+
+Qwen2.5-7B uses **Grouped-Query Attention** (only 4 KV heads × 128 dim, shared across the 28 query heads), which keeps the cache small for its size:
+
+```
+per_token_KV (fp16) = 2 (K+V) × num_kv_heads(4) × head_dim(128) × layers(28) × 2 bytes
+                    = ~112 KB / token
+```
+
+| Context length | KV cache (fp16) |
+|---|---|
+| 4 K tokens | ~459 MB |
+| 16 K tokens | ~1.8 GB |
+| 32 K tokens | ~3.7 GB |
+
+This is *on top of* the weights (~14 GB FP16 / ~4.4 GB q4_k_m). Long-context workloads can balloon the cache past the weights themselves — vLLM's PagedAttention exists exactly to amortize this across requests, but for single-process generation the table above is the budget you live with.
+
+A non-GQA 7B (e.g., older LLaMA-1) would be ~7× larger per token because every query head has its own K/V — one of the quiet wins in modern model architecture.
+
+### Detailed methodology
+
+- [`docs/TRAINING.md`](docs/TRAINING.md) — full LoRA recipe, hyperparameter rationale, why `bf16` over `fp16`, how the manifest is built
+- [`docs/training/README.md`](docs/training/README.md) — area README + roadmap (DPO trainer, distillation, multi-GPU)
+- [`docs/serving/README.md`](docs/serving/README.md) — backend matrix + decision tree (Stub / Scripted / Transformers / GGUF)
+- [`docs/MILESTONES.md`](docs/MILESTONES.md) — *why* each step happened, including the dead-ends (e.g., 60-pair LoRA underperformed v2 → pivot to prompt-first)
+
 ## Persona pack format
 
 A `.adelie` persona pack is the unit of distribution:
