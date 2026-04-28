@@ -1,6 +1,16 @@
 <a class="persona-card" href="/web/chat/{{ p.persona_id }}">
-    <div class="emoji">{{ p.emoji }}</div>
+    <div class="card-header">
+        <div class="emoji">{{ p.emoji }}</div>
+        <span class="tier-badge tier-T{{ p.target_tier }}" title="capability tier — see docs/CAPABILITY_TIERS.md">T{{ p.target_tier }}</span>
+    </div>
     <div class="name">{{ p.display_name }}</div>
+    <div class="industry-row">
+        {% if p.industry == "general" %}
+            <span class="industry-pill industry-general">general</span>
+        {% else %}
+            <span class="industry-pill industry-{{ p.industry }}">{{ p.industry }} ↗ <code>/demo/{{ p.industry }}</code></span>
+        {% endif %}
+    </div>
     <div class="desc">{{ p.description }}</div>
     <dl class="meta">
         <dt>base</dt><dd>{{ p.base_model_hint.split('/')[-1] }}</dd>

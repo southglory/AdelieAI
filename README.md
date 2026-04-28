@@ -82,7 +82,7 @@ Three Korean role-play personas (penguin / fish / knight) ship out of the box. C
 
 | Frame | What it shows |
 |---|---|
-| [`01_personas.png`](docs/screenshots/01_personas.png) | Persona gallery — three default characters with base / adapter / RAG / turn-count meta |
+| [`01_personas.png`](docs/screenshots/01_personas.png) | Persona gallery — five characters with **tier badge** + **industry pill** + base / adapter / RAG / turn-count meta |
 | [`02_chat_thread.png`](docs/screenshots/02_chat_thread.png) | Chat thread with per-turn telemetry (`{latency}s · {tokens} tok`) and persona sidebar (system prompt + adapter id) |
 | [`03_sessions.png`](docs/screenshots/03_sessions.png) | Agentic session mode — RAG-grounded one-shot runs (LangGraph planner → retriever → reasoner → reporter) |
 | [`04_docs_unavailable.png`](docs/screenshots/04_docs_unavailable.png) | Graceful fallback when no embedder is mounted |
