@@ -169,28 +169,36 @@
     margin: 0;
 }
 
-/* 5-tier rating widget — DPO 데이터 수집 (Step 6.2) */
+/* 3-tier rating + dismiss — DPO 데이터 수집 (Step 6.2)
+   bad / fine / good · dismiss. RLHF 관례 (Anthropic HH-RLHF, InstructGPT)
+   에 맞춰 5-tier 에서 refactor. */
 .turn .rating {
     display: flex;
-    gap: 0.15rem;
+    gap: 0.35rem;
     align-items: center;
+    flex-wrap: wrap;
     margin-top: 0.4rem;
     padding-top: 0.35rem;
     border-top: 1px dashed #cfe7f3;
-    font-size: 0.85em;
+    font-size: 0.78em;
 }
-.turn .rating .star {
+.turn .rating .rate-btn {
     background: transparent;
-    border: 0;
-    padding: 0 2px;
-    font-size: 1.1em;
-    line-height: 1;
+    border: 1px solid #cfe7f3;
+    border-radius: 12px;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.85em;
+    line-height: 1.3;
     cursor: pointer;
-    color: #c0c0c0;
-    transition: color 100ms;
+    color: var(--muted);
+    transition: background 100ms, color 100ms, border-color 100ms;
 }
-.turn .rating .star:hover { color: #f5a623; }
-.turn .rating .star.filled { color: #f5a623; }
+.turn .rating .rate-btn:hover { border-color: #88b9d4; color: #2c5168; }
+.turn .rating .rate-btn.selected.rate-bad     { background: #fde2e2; border-color: #e88c8c; color: #8a2424; }
+.turn .rating .rate-btn.selected.rate-fine    { background: #ececec; border-color: #c0c0c0; color: #444;    }
+.turn .rating .rate-btn.selected.rate-good    { background: #e1f4d6; border-color: #7fb96b; color: #2f5e1f; }
+.turn .rating .rate-btn.selected.rate-dismiss { background: #f4f0e0; border-color: #c8b97a; color: #6b5a1d; }
+.turn .rating .rate-dismiss { margin-left: 0.4rem; }  /* visual separation from the 3 main tiers */
 .turn .rating-label {
     margin-left: 0.4rem;
     color: var(--muted);

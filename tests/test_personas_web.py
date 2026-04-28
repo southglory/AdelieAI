@@ -192,39 +192,56 @@ def test_rating_widget_renders_in_assistant_turn(client: TestClient) -> None:
     assert r.status_code == 200
     assert 'class="rating"' in r.text
     assert "DPO 데이터 수집" in r.text
-    # 5 star buttons
-    assert r.text.count('class="star') == 5
+    # 4 rate-btn: bad / fine / good / dismiss
+    assert r.text.count('class="rate-btn') == 4
+    assert "👎 bad" in r.text
+    assert "➖ fine" in r.text
+    assert "👍 good" in r.text
+    assert "⊘ dismiss" in r.text
 
 
-def test_rate_persists_and_returns_filled_stars(client: TestClient) -> None:
+def test_rate_good_marks_selected_and_label(client: TestClient) -> None:
     turn_id = _post_msg_get_assistant_id(client, "penguin_relaxed", "rate me")
     r = client.post(
         f"/web/chat/penguin_relaxed/turns/{turn_id}/rate",
-        data={"rating": 4},
+        data={"rating": 3},
     )
     assert r.status_code == 200
-    # 4/5 → 4 filled, 1 unfilled
-    assert r.text.count("filled") == 4
-    assert "4/5" in r.text
+    # the "good" button is selected
+    assert "rate-good selected" in r.text or "rate-btn rate-good selected" in r.text
+    # label echoes the new state
+    assert ">good\n" in r.text or ">good <" in r.text or "good" in r.text
+
+
+def test_rate_dismiss_marks_separately(client: TestClient) -> None:
+    turn_id = _post_msg_get_assistant_id(client, "penguin_relaxed", "skip me")
+    r = client.post(
+        f"/web/chat/penguin_relaxed/turns/{turn_id}/rate",
+        data={"rating": 0},
+    )
+    assert r.status_code == 200
+    assert "rate-dismiss selected" in r.text
+    assert "dismissed" in r.text
 
 
 def test_rate_persists_across_thread_reload(client: TestClient) -> None:
     turn_id = _post_msg_get_assistant_id(client, "penguin_relaxed", "stick")
     client.post(
         f"/web/chat/penguin_relaxed/turns/{turn_id}/rate",
-        data={"rating": 3},
+        data={"rating": 1},
     )
     page = client.get("/web/chat/penguin_relaxed")
-    assert "3/5" in page.text
+    assert "rate-bad selected" in page.text
 
 
 def test_rate_rejects_out_of_range(client: TestClient) -> None:
     turn_id = _post_msg_get_assistant_id(client, "penguin_relaxed", "edge")
-    bad = client.post(
-        f"/web/chat/penguin_relaxed/turns/{turn_id}/rate",
-        data={"rating": 7},
-    )
-    assert bad.status_code == 400
+    for bad_value in (4, 5, 7, -1):
+        r = client.post(
+            f"/web/chat/penguin_relaxed/turns/{turn_id}/rate",
+            data={"rating": bad_value},
+        )
+        assert r.status_code == 400, f"expected 400 for rating={bad_value}"
 
 
 def test_rate_unknown_turn_404(client: TestClient) -> None:

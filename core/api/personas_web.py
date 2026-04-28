@@ -172,11 +172,11 @@ def build_personas_web_router(
         persona = get_persona(persona_id)
         if persona is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        # Toggle: clicking the same rating again clears it.
-        if not (1 <= rating <= 5):
+        # Allowed values: 0 (dismiss), 1 (bad), 2 (fine), 3 (good).
+        if rating not in (0, 1, 2, 3):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="rating must be 1..5",
+                detail="rating must be 0 (dismiss) | 1 (bad) | 2 (fine) | 3 (good)",
             )
         existing = await chat_store.rate(turn_id, rating)
         if existing is None:

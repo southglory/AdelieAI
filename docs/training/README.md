@@ -54,16 +54,28 @@ PYTHONUTF8=1 .venv/Scripts/python -X utf8 \
     --out data/dpo/cynical_merchant.jsonl
 ```
 
-## DPO 데이터 수집 (Step 6.2)
+## DPO 데이터 수집 (Step 6.2 — 3-tier + dismiss)
 
-별점 1-5 점이 사용자가 채팅방에서 직접 매긴 *상대 선호*. 같은 prompt 가 동일 페르소나에 여러 번 답변되고 *그 중 하나는 ≥4 점, 다른 하나는 ≤2 점* 인 케이스가 모이면 한 쌍의 DPO `(chosen, rejected)` 가 된다.
+사용자가 채팅에서 답변마다 한 클릭으로 평가:
+
+| rating | 의미 | DPO 활용 |
+|---|---|---|
+| `3` good | 좋음 | chosen 후보 |
+| `2` fine | 괜찮음 | preference signal 없음 — drop |
+| `1` bad | 나쁨 | rejected 후보 |
+| `0` dismiss | 평가 거부 (잡담 등) | drop, 통계용 별도 카운트 |
+| `None` | 미상호작용 (default) | drop |
+
+같은 prompt 가 동일 페르소나에 여러 번 답변되고 *그 중 하나는 ≥3, 다른 하나는 ≤1* 인 케이스가 모이면 한 쌍의 DPO `(chosen, rejected)` 가 된다.
+
+> **왜 5-tier 가 아닌가**: RLHF 산업 관례 (Anthropic HH-RLHF, InstructGPT) 가 binary/3-way. 5-tier 는 제품 리뷰 관례라서 *DPO 에 맞지 않음* — 4 vs 5 노이즈 + dismiss 축 누락. 처음 구현 후 즉시 refactor 한 결정의 흔적은 `docs/MILESTONES.md` 의 `[training/dpo] (2회차)` 항목.
 
 | 단계 | 위치 |
 |---|---|
-| 별점 위젯 | `core/api/templates/chat/_turn_assistant.html` (HTMX) |
+| 평가 위젯 | `core/api/templates/chat/_turn_assistant.html` (HTMX 4 버튼) |
 | 저장소 | `core/personas/store.py` 의 `ChatStore.rate(turn_id, rating)` |
-| API | `POST /web/chat/{persona_id}/turns/{turn_id}/rate` |
-| Export | [`scripts/export_dpo.py`](../../scripts/export_dpo.py) |
+| API | `POST /web/chat/{persona_id}/turns/{turn_id}/rate` (rating ∈ {0,1,2,3}) |
+| Export | [`scripts/export_dpo.py`](../../scripts/export_dpo.py) (default thresholds: chosen≥3, rejected≤1) |
 | 데이터 형식 | `{persona_id, prompt, chosen, rejected, chosen_rating, rejected_rating}` JSONL |
 
 ## 평가
