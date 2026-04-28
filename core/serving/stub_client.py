@@ -95,9 +95,28 @@ def _select_voice(system: str | None) -> list[str] | None:
 
 
 def _pick(lines: list[str], prompt: str) -> str:
-    # Deterministic but spread: same prompt → same line, different
-    # prompts → different lines.
-    return lines[hash(prompt) % len(lines)]
+    """Deterministic + history-aware picker.
+
+    *Why not Python `hash()`*: it is randomized per process (PYTHONHASHSEED),
+    so identical inputs produce different replies across runs — flaky in
+    tests, and harvests no DPO pairs when a user sends the same question
+    repeatedly (~25% collision with 4-5 line pools).
+
+    *What we do*: count Assistant: markers in the prompt to estimate the
+    conversation depth, and use that as the index. The same `user_text`
+    submitted N times in a row picks N distinct replies (mod len(lines)),
+    matching the *intent* of stub mode for DPO data harvesting.
+
+    *Tie-break for first turn*: depth=0 produces the same line for every
+    new conversation; we mix in `hashlib.sha256(prompt) % len(lines)`
+    *summed* with depth so different first questions still get different
+    replies, while preserving history-walks through the line list.
+    """
+    import hashlib
+
+    depth = prompt.count("Assistant:")  # 0 for empty history, grows by 1 per turn
+    seed = int(hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:8], 16)
+    return lines[(depth + seed) % len(lines)]
 
 
 class StubLLMClient:

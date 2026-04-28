@@ -285,56 +285,46 @@ def test_rating_summary_appears_after_first_rating(client: TestClient) -> None:
     assert "DPO 0" in page.text
 
 
-def test_dpo_pair_count_surfaces_after_good_and_bad() -> None:
-    # Direct store injection — StubLLMClient is deterministic per prompt
-    # (same prompt → identical reply → harvest dedup), so we manufacture
-    # two distinct assistant replies for the same prompt to exercise the
-    # gallery + chat-thread rendering of the DPO pair count.
-    import asyncio
-    from datetime import datetime, timezone
-
-    from core.api.app import build_app
-    from core.personas.store import ChatTurn, InMemoryChatStore
-    from core.serving.stub_client import StubLLMClient
-    from core.session.store_memory import InMemorySessionStore
-
-    chat_store = InMemoryChatStore()
-
-    async def seed() -> None:
-        for role, content, rating in [
-            ("user", "어이", None),
-            ("assistant", "또 왔어? 살 거면 사라.", 3),  # good
-            ("user", "어이", None),
-            ("assistant", "흠, 뭘 원해? 그냥 비켜.", 1),  # bad — distinct text
-        ]:
-            await chat_store.append(
-                ChatTurn(
-                    id=None,
-                    persona_id="cynical_merchant",
-                    user_id="demo",
-                    role=role,
-                    content=content,
-                    tokens_in=None,
-                    tokens_out=None,
-                    latency_ms=None,
-                    created_at=datetime(2026, 4, 28, tzinfo=timezone.utc),
-                    rating=rating,
-                )
-            )
-    asyncio.run(seed())
-
-    app = build_app(
-        store=InMemorySessionStore(),
-        llm=StubLLMClient(),
-        chat_store=chat_store,
+def test_dpo_pair_count_surfaces_after_good_and_bad(client: TestClient) -> None:
+    # Two assistant turns for the same prompt — one good, one bad → 1 pair.
+    # Stub picker is now history-aware (turn 1 vs turn 2 → different lines)
+    # so the pair survives harvest dedup. Restored from the direct-store
+    # workaround once ticket #62 was fixed.
+    t1 = _post_msg_get_assistant_id(client, "cynical_merchant", "할인 안 돼?")
+    t2 = _post_msg_get_assistant_id(client, "cynical_merchant", "할인 안 돼?")
+    client.post(
+        f"/web/chat/cynical_merchant/turns/{t1}/rate", data={"rating": 3}
     )
-    c = TestClient(app)
-    gallery = c.get("/web/personas")
+    client.post(
+        f"/web/chat/cynical_merchant/turns/{t2}/rate", data={"rating": 1}
+    )
+    gallery = client.get("/web/personas")
     assert "DPO 1" in gallery.text
-
-    thread = c.get("/web/chat/cynical_merchant")
+    thread = client.get("/web/chat/cynical_merchant")
     assert "header-rating-summary" in thread.text
     assert "DPO 1" in thread.text
+
+
+def test_stub_returns_different_replies_for_repeat_prompt(client: TestClient) -> None:
+    """Regression for ticket #62 — same user_text twice must produce two
+    distinct stub replies (history-aware picker)."""
+    r1 = client.post(
+        "/web/chat/cynical_merchant/messages", data={"message": "외상?"}
+    )
+    r2 = client.post(
+        "/web/chat/cynical_merchant/messages", data={"message": "외상?"}
+    )
+    # Pull the .body of the assistant turn out of each response.
+    import re
+    def _body(html: str) -> str:
+        m = re.search(r'<div class="body">([\s\S]*?)</div>', html)
+        # Find the second body (assistant) — first is user
+        bodies = re.findall(r'<div class="body">([\s\S]*?)</div>', html)
+        return bodies[-1]
+    assert _body(r1.text) != _body(r2.text), (
+        "stub returned identical replies for repeat prompt — DPO harvest "
+        "would dedup. Picker must be history-aware (ticket #62)."
+    )
 
 
 def test_dismiss_surfaces_separately_in_summary(client: TestClient) -> None:

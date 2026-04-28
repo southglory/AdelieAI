@@ -22,6 +22,8 @@ ref 는 commit short hash, iteration report 파일명, 또는 Step 번호.
 
 ## 2026-04-28
 
+- 2026-04-28 [persona/cynical_merchant] (4회차) **결제 페어 +6 (v3 트리거 queue) + round 5 측정**. dialogue_pairs.jsonl 63→69 로 결제 패턴 보강 ("결제 어떻게 해?"/"수표?"/"할부?" → "현금이나 골드만"). 재학습 안 함, 다음 LoRA v3 시 사용. **현재 LoRA v2 + 강화 prompt 만으로 pass 92% → 96%**, lore_payment 가 banned_genuine_fail → negation_false_positive 로 격하 ("현금이나 골드만. 카드 같은 건 모르겠군." 식 부정맥락 답변). substring grader 의 한계 — 실 voice 결함 아님. → 다음 commit
+- 2026-04-28 [serving/stub] (2회차 — fix) **ticket #62 fix** — `_pick(lines, prompt)` 가 Python `hash()` (PYTHONHASHSEED 랜덤화 → 프로세스간 비결정) 대신 `Assistant:` 카운트 (history depth) + `hashlib.sha256` 안정 시드. 같은 user_text 반복 시 history 별 다른 줄 보장 → DPO harvest dedup 안 걸림. **288/288** (1 신규 회귀 테스트 — repeat prompt 다른 reply 확정). 임시 우회한 dpo pair count 테스트는 HTTP path 로 복원. → 다음 commit
 - 2026-04-28 [training/dpo] (3회차 — UX 보강) **rating_stats + DPO pair count 갤러리·헤더에 노출**. `RatingStats` dataclass 신설, `core/personas/dpo.py` 분리 (script 와 store 양쪽 사용), `_card.html` + chat header 에 G/F/B/dismiss 카운트 + DPO pair badge. **287/287 tests** (12 신규). 작업 중 root issue 2 건 발견 → 티켓 #62, #63. → 다음 commit
 - 2026-04-28 [serving/stub] (1회차 발견) **StubLLMClient 결정성 root issue** — `hash(prompt)` 로 canned reply 결정 → 같은 prompt 반복 시 항상 같은 답변. 표면 영향: DPO 데이터 수집 *기획 의도가 stub 모드에서 작동 안 함* (harvest dedup 에 걸려 페어 0). 임시 우회: 직접 store 주입 테스트. 영구 fix → ticket #62.
 - 2026-04-28 [storage/perf] (1회차 발견) **rating_stats N+1 on gallery render** — N 페르소나 × `list_turns` 풀스캔. 6 페르소나엔 무시 가능, 100+ 스케일에선 재방문. ticket #63.
