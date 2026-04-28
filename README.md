@@ -58,7 +58,7 @@ Three industry verticals showcase the tier ladder out of the box. Same engine, t
   </tr>
 </table>
 
-`/health` introspects which tier the running build supports. Full framework + decision tree: [`docs/CAPABILITY_TIERS.md`](docs/CAPABILITY_TIERS.md). Repo organization (7 영역 모듈식 설계): [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Per-area docs (personas / retrieval / tools / agents / training / serving / evaluation): see [`docs/`](docs/).
+`/health` introspects which tier the running build supports. Full framework + decision tree: [`docs/CAPABILITY_TIERS.md`](docs/CAPABILITY_TIERS.md). Repo organization (7-area modular design): [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Per-area docs (personas / retrieval / tools / agents / training / serving / evaluation): see [`docs/`](docs/).
 
 Don't have weights downloaded? `StubLLMClient` ships persona-aware canned voice — visiting the demos still shows in-character replies (penguin / fish / knight / merchant / detective each have a small canned set), so OSS visitors get the *shape* without GPU.
 
@@ -85,17 +85,50 @@ AdelieAI ships:
 
 Three Korean role-play personas (penguin / fish / knight) ship out of the box. Click a card to open a chat thread; per-turn token count and latency surface inline. Screenshots above are captured against `Qwen2.5-7B-Instruct + qwen-roleplay-v2` on a single RTX 3090 — note the live `llm:` indicator in the top nav and the in-character Korean replies.
 
-| Frame | What it shows |
-|---|---|
-| [`01_personas.png`](docs/screenshots/01_personas.png) | Persona gallery — five characters with **tier badge** + **industry pill** + base / adapter / RAG / turn-count meta |
-| [`02_chat_thread.png`](docs/screenshots/02_chat_thread.png) | Chat thread with per-turn telemetry (`{latency}s · {tokens} tok`) and persona sidebar (system prompt + adapter id) |
-| [`03_sessions.png`](docs/screenshots/03_sessions.png) | Agentic session mode — RAG-grounded one-shot runs (LangGraph planner → retriever → reasoner → reporter) |
-| [`04_docs_unavailable.png`](docs/screenshots/04_docs_unavailable.png) | Graceful fallback when no embedder is mounted |
-| [`05_health.png`](docs/screenshots/05_health.png) | `/health` JSON output |
-| [`06_swagger.png`](docs/screenshots/06_swagger.png) | Swagger UI at `/docs` |
-| [`30_rating_widget.png`](docs/screenshots/30_rating_widget.png) | **3-tier rating + dismiss** under each assistant turn — the one-click DPO data harvester (good · fine · bad · dismiss). Header badge surfaces aggregate counts + harvested DPO pair count |
-| [`31_personas_with_dpo.png`](docs/screenshots/31_personas_with_dpo.png) | Gallery cards now expose per-persona rating rollup + **DPO N** badge — quick read on which voice has accumulated training-quality preference data |
-| [`32_metrics_dashboard.png`](docs/screenshots/32_metrics_dashboard.png) | `/web/metrics` — per-persona activity rollup (turns / tokens out / avg latency / last activity). Built from `chat_turns`; complementary to the agentic-flow event log under `/web/sessions` |
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <a href="docs/screenshots/01_personas.png"><img src="docs/screenshots/01_personas.png" alt="Persona gallery"/></a><br/>
+      <sub><b>01 — Persona gallery</b><br/>tier badge + industry pill + base / adapter / RAG / turn-count meta</sub>
+    </td>
+    <td width="33%" align="center">
+      <a href="docs/screenshots/02_chat_thread.png"><img src="docs/screenshots/02_chat_thread.png" alt="Chat thread"/></a><br/>
+      <sub><b>02 — Chat thread</b><br/>per-turn telemetry (<code>{latency}s · {tokens} tok</code>) + persona sidebar</sub>
+    </td>
+    <td width="33%" align="center">
+      <a href="docs/screenshots/03_sessions.png"><img src="docs/screenshots/03_sessions.png" alt="Agentic sessions"/></a><br/>
+      <sub><b>03 — Agentic sessions</b><br/>RAG-grounded one-shot runs (planner → retriever → reasoner → reporter)</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="docs/screenshots/04_docs_unavailable.png"><img src="docs/screenshots/04_docs_unavailable.png" alt="Docs fallback"/></a><br/>
+      <sub><b>04 — Docs fallback</b><br/>graceful behavior when no embedder is mounted</sub>
+    </td>
+    <td align="center">
+      <a href="docs/screenshots/05_health.png"><img src="docs/screenshots/05_health.png" alt="Health endpoint"/></a><br/>
+      <sub><b>05 — <code>/health</code> JSON</b><br/>active backends, retriever, store</sub>
+    </td>
+    <td align="center">
+      <a href="docs/screenshots/06_swagger.png"><img src="docs/screenshots/06_swagger.png" alt="Swagger UI"/></a><br/>
+      <sub><b>06 — Swagger UI</b><br/>API surface at <code>/docs</code></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="docs/screenshots/30_rating_widget.png"><img src="docs/screenshots/30_rating_widget.png" alt="3-tier rating widget"/></a><br/>
+      <sub><b>30 — Rating widget</b><br/>3-tier + dismiss under each turn (good · fine · bad · dismiss). Header badge aggregates counts + DPO pair total</sub>
+    </td>
+    <td align="center">
+      <a href="docs/screenshots/31_personas_with_dpo.png"><img src="docs/screenshots/31_personas_with_dpo.png" alt="Gallery with DPO badge"/></a><br/>
+      <sub><b>31 — Gallery with DPO badge</b><br/>per-persona rating rollup + harvest-ready pair count</sub>
+    </td>
+    <td align="center">
+      <a href="docs/screenshots/32_metrics_dashboard.png"><img src="docs/screenshots/32_metrics_dashboard.png" alt="Metrics dashboard"/></a><br/>
+      <sub><b>32 — <code>/web/metrics</code></b><br/>per-persona activity (turns / tokens / avg latency / last activity)</sub>
+    </td>
+  </tr>
+</table>
 
 > Regenerate any time with `scripts/capture_screenshots.py` (legacy gallery + chat) or `scripts/capture_step6_screenshots.py` (rating widget + DPO badges + metrics) — Playwright walkers that seed via HTTP and snap PNGs against a running console.
 
@@ -153,9 +186,9 @@ A non-GQA 7B (e.g., older LLaMA-1) would be ~7× larger per token because every 
 | `CUDA out of memory` mid-step despite the table above | `gradient_checkpointing` flipped off, or `per_device_batch > 2` | Keep checkpointing on; the 24 GB budget *requires* it. Lower batch before raising LR. |
 | `~/.cache/huggingface/hub` silently grows to 30+ GB | First-time downloads of `Qwen2.5-7B-Instruct`, `multilingual-e5-small`, `bge-reranker-v2-m3`, etc. accumulate | Watch with `du -sh ~/.cache/huggingface/hub`. Prune unused snapshots with `huggingface-cli delete-cache`. |
 | `Segmentation fault` on `import trl` | TRL must be imported *after* PEFT to avoid a known C-extension load order bug | `core/training/trainer.py` enforces the order — don't reorder its imports. |
-| LoRA v1 underperforms LoRA v2 on general questions | Single-register training → catastrophic forgetting | Mix general-domain pairs at ≥1:1 ratio. See [`docs/MILESTONES.md`](docs/MILESTONES.md) — `[training/lora] (1회차)` log. |
+| LoRA v1 underperforms LoRA v2 on general questions | Single-register training → catastrophic forgetting | Mix general-domain pairs at ≥1:1 ratio. See [`docs/MILESTONES.md`](docs/MILESTONES.md) — `[training/lora] (1st cycle)` log. |
 
-Full pitfalls list: [`docs/training/README.md` § 함정](docs/training/README.md#함정), [`docs/serving/README.md` § 함정](docs/serving/README.md#함정).
+Full pitfalls list: [`docs/training/README.md` § Pitfalls](docs/training/README.md#pitfalls-함정), [`docs/serving/README.md` § Pitfalls](docs/serving/README.md#pitfalls-함정).
 
 ### Detailed methodology
 
@@ -250,7 +283,7 @@ When a persona pack is mounted, `llm` becomes `base+persona-id`.
 
 ## Chat with a persona
 
-Three Korean role-play personas ship out of the box: **🐧 놀고 있는 펭귄**, **🐟 헤엄치는 물고기**, **⚔️ 용감한 기사**. With or without a LoRA adapter mounted, the system prompt drives the character; with `qwen-roleplay-v2` mounted, the LoRA additionally tilts the voice toward role-play register.
+Three Korean role-play personas ship out of the box: **🐧 `penguin_relaxed`** (Adelie penguin lazing on the ice), **🐟 `fish_swimmer`** (a fish drifting through open water), and **⚔️ `knight_brave`** (a sworn knight facing down dragons). The display names render in Korean (`놀고 있는 펭귄` / `헤엄치는 물고기` / `용감한 기사`) because the personas speak Korean — that's the voice the LoRA was trained on. With or without a LoRA adapter mounted, the system prompt drives the character; with `qwen-roleplay-v2` mounted, the LoRA additionally tilts the voice toward role-play register.
 
 1. Open `/web/personas` — gallery of cards with base / adapter / RAG status / turn count.
 2. Click a card → `/web/chat/{persona_id}` — chat thread with the character.
