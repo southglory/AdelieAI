@@ -29,24 +29,34 @@ def client() -> TestClient:
     return TestClient(app)
 
 
-def test_registry_has_three_default_personas() -> None:
-    assert len(DEFAULT_PERSONAS) == 3
+def test_registry_has_default_personas() -> None:
     ids = {p.persona_id for p in list_personas()}
-    assert ids == {"penguin_relaxed", "fish_swimmer", "knight_brave"}
+    # v0.1.5 baseline (general companions)
+    assert {"penguin_relaxed", "fish_swimmer", "knight_brave"}.issubset(ids)
+    # v0.2 vertical-anchored personas
+    assert "cynical_merchant" in ids
+
+
+def test_registry_industry_and_tier_are_declared() -> None:
+    for p in list_personas():
+        assert p.target_tier in {1, 2, 3, 4, 5}
+        assert p.industry in {"general", "gaming", "legal", "knowledge"}
 
 
 def test_get_persona_returns_none_for_unknown_id() -> None:
     assert get_persona("dragon_lord") is None
 
 
-def test_personas_page_renders_three_cards(client: TestClient) -> None:
+def test_personas_page_renders_default_cards(client: TestClient) -> None:
     r = client.get("/web/personas")
     assert r.status_code == 200
     assert "Personas" in r.text
     assert "🐧" in r.text
     assert "🐟" in r.text
     assert "⚔️" in r.text
+    assert "💰" in r.text  # cynical_merchant
     assert "/web/chat/penguin_relaxed" in r.text
+    assert "/web/chat/cynical_merchant" in r.text
 
 
 def test_personas_card_shows_initial_zero_turns(client: TestClient) -> None:

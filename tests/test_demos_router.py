@@ -48,6 +48,32 @@ def test_vertical_page_shows_persona_id(client: TestClient) -> None:
     assert "cold_detective" in r.text
 
 
+def test_gaming_demo_has_jrpg_chrome(client: TestClient) -> None:
+    """gaming vertical was custom-designed in Step 2 — verify the
+    distinctive JRPG shop chrome survives."""
+    r = client.get("/demo/gaming")
+    body = r.text
+    assert "CROOKED COIN" in body  # shop sign
+    assert "shop-stage" in body  # full-bleed scene container
+    assert "dialogue-thread" in body  # HTMX target
+    assert "/web/chat/cynical_merchant/messages" in body  # backend wire
+    assert "Press+Start+2P" in body  # pixel font import
+    # Inventory items rendered server-side (mock, not from a registry yet)
+    for item in ("가죽 갑옷", "단검", "회복 약초", "마법 두루마리", "횃불"):
+        assert item in body, f"missing inventory item: {item}"
+
+
+def test_legal_demo_uses_placeholder(client: TestClient) -> None:
+    """legal still on the placeholder pending Step 3 design pass."""
+    r = client.get("/demo/legal")
+    assert "demo-placeholder" in r.text
+
+
+def test_knowledge_demo_uses_placeholder(client: TestClient) -> None:
+    r = client.get("/demo/knowledge")
+    assert "demo-placeholder" in r.text
+
+
 def test_health_exposes_tier(client: TestClient) -> None:
     r = client.get("/health")
     body = r.json()
