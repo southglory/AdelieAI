@@ -2,7 +2,7 @@
 
 A *persona pack* is a self-contained directory (or `.zip`) bundling everything needed to run a single character with consistent voice and grounded knowledge.
 
-> Spec status: **v0.1 draft**. Layout is stable; quantization variants land in v0.2.
+> Spec status: **v0.2 draft**. v0.1 layout is stable. v0.2 adds the GGUF q4_k_m variant — *implemented and shipping*. AWQ variant remains roadmap (parked behind a Windows triton blocker — re-opens on Linux/WSL).
 
 ## Layout (v0.1)
 
@@ -86,7 +86,7 @@ A pack is valid if:
 
 The CLI ships a validator: `python -m adelie.persona validate path/to/persona.adelie/`.
 
-## Roadmap — v0.2 (quantization)
+## v0.2 — quantization variants
 
 v0.2 adds optional quantized artifacts side-by-side with the fp16 source:
 
@@ -94,8 +94,8 @@ v0.2 adds optional quantized artifacts side-by-side with the fp16 source:
 {persona_id}.adelie/
 ├── MANIFEST.json                # gains "variants" section
 ├── adapter.safetensors          # source (training adapter, fp16)
-├── merged.awq.safetensors       # AWQ 4-bit merged base+adapter (~2 GB for 7B)
-├── merged.q4_k_m.gguf           # llama.cpp GGUF variant (~2 GB)
+├── merged.q4_k_m.gguf           # llama.cpp GGUF variant — IMPLEMENTED (~4.4 GB for Qwen2.5-7B base)
+├── merged.awq.safetensors       # AWQ 4-bit merged base+adapter — ROADMAP (Linux/WSL)
 ├── ...
 ```
 
@@ -103,12 +103,33 @@ v0.2 adds optional quantized artifacts side-by-side with the fp16 source:
 ```json
 "variants": [
   {"runtime": "transformers-fp16", "path": "adapter.safetensors", "size_mb": 154},
-  {"runtime": "vllm-awq",          "path": "merged.awq.safetensors", "size_mb": 2120, "eval_score_retention": 0.97},
-  {"runtime": "llama.cpp-q4_k_m",  "path": "merged.q4_k_m.gguf",     "size_mb": 2160, "eval_score_retention": 0.94}
+  {"runtime": "llama.cpp-q4_k_m",  "path": "merged.q4_k_m.gguf",     "size_mb": 4467, "compression_ratio": 3.25},
+  {"runtime": "vllm-awq",          "path": "merged.awq.safetensors", "size_mb": 2120, "status": "roadmap"}
 ]
 ```
 
-This lets a deployer pick the variant matching their runtime: GPU server (fp16+adapter), vLLM at scale (AWQ), or end-user CPU (GGUF).
+This lets a deployer pick the variant matching their runtime: GPU server (fp16+adapter), end-user CPU (GGUF, *available now*), or vLLM at scale (AWQ, *coming after the Windows triton blocker*).
+
+### v0.2 — what's actually shipping
+
+A reference q4_k_m artifact for `qwen-roleplay-v2` lives at:
+
+```
+models/ours/qwen-roleplay-v2-gguf/
+├── MANIFEST.json
+├── recipe.md                                 # full reproduction
+└── qwen-roleplay-v2.q4_k_m.gguf             # 4.36 GB single file
+```
+
+Mounted via:
+```bash
+MODEL_PATH=models/ours/qwen-roleplay-v2-gguf/qwen-roleplay-v2.q4_k_m.gguf \
+  uvicorn core.api.app:app --port 8770
+```
+
+`core/api/app.py::_default_llm` dispatches to `GGUFClient` when `MODEL_PATH` ends in `.gguf`. The persona gallery / chat thread UX is identical to the FP16 path; only the underlying weights are smaller.
+
+The recipe (merge → GGUF FP16 → q4_k_m) lives in the `differentia-llm` sibling repo at `experiments/05_awq_quantize/merge.py` and `experiments/06_gguf_export/run.py` — both reproducible with one command each, see [`models/ours/qwen-roleplay-v2-gguf/recipe.md`](../models/ours/qwen-roleplay-v2-gguf/recipe.md).
 
 ## Roadmap — v0.3 (distillation)
 

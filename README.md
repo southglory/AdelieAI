@@ -8,7 +8,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![tests](https://img.shields.io/badge/tests-161%20passing-brightgreen.svg)](#testing)
+[![tests](https://img.shields.io/badge/tests-168%20passing-brightgreen.svg)](#testing)
 [![Persona Pack v0.1](https://img.shields.io/badge/persona%20pack-v0.1-blueviolet.svg)](docs/PERSONA_PACK.md)
 
 </div>
@@ -23,7 +23,7 @@ A pipeline that takes you from **persona idea → deployable character**:
 2. Train a LoRA adapter on a Qwen 7B base (~80 seconds on a single 3090)
 3. Compare the new character against base + previous versions (LLM-as-judge)
 4. Pack everything into a `.adelie` persona pack — one self-contained artifact
-5. *(v0.2)* Quantize to AWQ / GGUF — the same persona ships at 1/4 the size
+5. **(v0.2 · current)** Quantize to GGUF q4_k_m — the same persona ships at 1/3 the size (AWQ track parked behind a Windows triton blocker, see `experiments/05_awq_quantize/results.md`)
 6. Drop into a game NPC, Discord bot, customer-service worker, or CLI chat
 
 Each `.adelie` pack is a single character with consistent voice, optional RAG-grounded knowledge, and a reproducible training recipe.
@@ -86,7 +86,8 @@ Full spec: [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md). Roadmap to v0.2 adds 
 | **Console UI** | HTMX + Jinja2 — persona gallery, chat thread, agentic sessions; single process, no JS framework |
 | **Training** | TRL `SFTTrainer` LoRA, plus a pure-PyTorch nanoGPT for from-scratch experiments |
 | **Logging** | Structured JSON + per-request id propagation |
-| **Tests** | 161 unit + Playwright E2E walker |
+| **Quantization** | GGUF q4_k_m via llama-cpp-python; merged adapter → 4.4 GB single file (3.25× smaller) |
+| **Tests** | 168 unit + Playwright E2E walker |
 
 ## Design principles
 
@@ -155,6 +156,37 @@ Persistence: every turn is stored in `data/chats.db` (SQLite by default; swap vi
 
 The persona registry is hard-coded for v0.1.5; v0.2 swaps it for `.adelie` pack auto-discovery — see [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md).
 
+## Quantize a persona
+
+The v0.2 quantization recipe lives in the sibling `differentia-llm` repo (the private incubator). The same merged checkpoint shrinks from 14.5 GB → 4.36 GB (a 3.25× compression) without losing the role-play voice.
+
+```bash
+# 0. one-time: prebuilt CPU wheel + format library
+.venv/Scripts/pip install llama-cpp-python --only-binary=:all: \
+    --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+.venv/Scripts/pip install gguf sentencepiece
+
+# 1. merge LoRA adapter into base
+python ../differentia-llm/experiments/05_awq_quantize/merge.py \
+    --base models/upstream/Qwen2.5-7B-Instruct \
+    --adapter models/ours/qwen-roleplay-v2 \
+    --output models/ours/qwen-roleplay-v2-merged
+
+# 2. convert + quantize
+python ../differentia-llm/experiments/06_gguf_export/run.py \
+    --merged models/ours/qwen-roleplay-v2-merged \
+    --output models/ours/qwen-roleplay-v2-gguf \
+    --quant q4_k_m
+
+# 3. mount the .gguf file
+MODEL_PATH=models/ours/qwen-roleplay-v2-gguf/qwen-roleplay-v2.q4_k_m.gguf \
+PYTHONUTF8=1 .venv/Scripts/uvicorn core.api.app:app --port 8770
+```
+
+`/health` reports `llm: qwen-roleplay-v2-gguf` and the persona gallery serves the quantized character voice with the same UX as the FP16 path. CPU inference is slower than GPU FP16 (a few seconds per turn vs sub-second), so the GPU path remains canonical for production demos; the GGUF path is for shipping.
+
+[`models/ours/qwen-roleplay-v2-gguf/recipe.md`](models/ours/qwen-roleplay-v2-gguf/recipe.md) and [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md) document the full recipe.
+
 ## Train a persona
 
 ```bash
@@ -202,8 +234,8 @@ A 69M model trains end-to-end in ~5 minutes on an RTX 3090.
 | version | adds |
 |---|---|
 | v0.1 | Persona pack format spec, LoRA training, hybrid RAG, LangGraph agent, comparison harness |
-| **v0.1.5** (current) | **Persona gallery + multi-turn chat UI with per-turn telemetry** (token count + latency) |
-| **v0.2** | AWQ + GGUF quantization track — same persona, 1/4 the deployable size |
+| v0.1.5 | Persona gallery + multi-turn chat UI with per-turn telemetry (token count + latency) |
+| **v0.2** (current) | **GGUF q4_k_m quantization — same persona ships at 1/3 the size on Windows / CPU.** Adds `GGUFClient`, `MODEL_PATH=*.gguf` dispatch, and a reproducible `experiments/06_gguf_export/` recipe. AWQ track is parked behind a Windows triton blocker (see `experiments/05_awq_quantize/results.md`) — re-opens on Linux/WSL. |
 | **v0.3** | Distillation track (7B teacher → 1.5B student) — mobile-class personas |
 | **v0.4** | vLLM serving — multiple personas concurrent on one GPU |
 | **v0.5** | Tool-use personas — function calling per persona |

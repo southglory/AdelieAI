@@ -49,7 +49,24 @@ def _default_llm() -> LLMClient:
         "MODEL_PATH", "models/upstream/Qwen2.5-7B-Instruct"
     )
     lora_path = os.environ.get("LORA_PATH")
-    if _has_weights(Path(model_path)):
+    path = Path(model_path)
+
+    # GGUF path: a single quantized file. LoRA is not applied at runtime —
+    # GGUF artifacts are already merged + quantized upstream
+    # (see differentia-llm/experiments/06_gguf_export/).
+    if path.is_file() and path.suffix == ".gguf":
+        try:
+            from core.serving.gguf_client import GGUFClient
+
+            return GGUFClient(path)
+        except Exception as e:
+            log.warning(
+                "gguf_load_failed",
+                extra={"path": str(path), "error": str(e)},
+            )
+            return StubLLMClient()
+
+    if _has_weights(path):
         try:
             from core.serving.transformers_client import TransformersClient
 
