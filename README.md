@@ -145,6 +145,18 @@ This is *on top of* the weights (~14 GB FP16 / ~4.4 GB q4_k_m). Long-context wor
 
 A non-GQA 7B (e.g., older LLaMA-1) would be ~7× larger per token because every query head has its own K/V — one of the quiet wins in modern model architecture.
 
+### Gotchas (the ones that bit us in practice)
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `UnicodeDecodeError: 'cp949' codec` on Windows before training even starts | Korean strings in `dataset.py` / configs decoded under cp949 | Always export `PYTHONUTF8=1` (or run `python -X utf8 …`). Both are baked into the script invocations in `docs/TRAINING.md`. |
+| `CUDA out of memory` mid-step despite the table above | `gradient_checkpointing` flipped off, or `per_device_batch > 2` | Keep checkpointing on; the 24 GB budget *requires* it. Lower batch before raising LR. |
+| `~/.cache/huggingface/hub` silently grows to 30+ GB | First-time downloads of `Qwen2.5-7B-Instruct`, `multilingual-e5-small`, `bge-reranker-v2-m3`, etc. accumulate | Watch with `du -sh ~/.cache/huggingface/hub`. Prune unused snapshots with `huggingface-cli delete-cache`. |
+| `Segmentation fault` on `import trl` | TRL must be imported *after* PEFT to avoid a known C-extension load order bug | `core/training/trainer.py` enforces the order — don't reorder its imports. |
+| LoRA v1 underperforms LoRA v2 on general questions | Single-register training → catastrophic forgetting | Mix general-domain pairs at ≥1:1 ratio. See [`docs/MILESTONES.md`](docs/MILESTONES.md) — `[training/lora] (1회차)` log. |
+
+Full pitfalls list: [`docs/training/README.md` § 함정](docs/training/README.md#함정), [`docs/serving/README.md` § 함정](docs/serving/README.md#함정).
+
 ### Detailed methodology
 
 - [`docs/TRAINING.md`](docs/TRAINING.md) — full LoRA recipe, hyperparameter rationale, why `bf16` over `fp16`, how the manifest is built
