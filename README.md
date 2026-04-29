@@ -259,6 +259,24 @@ python -m venv .venv
     --local-dir models/upstream/bge-reranker-v2-m3
 ```
 
+### (Optional) Pull our pre-trained Korean role-play adapter
+
+If you want to skip the training run and just hear the persona voice, two flavors are published:
+
+```bash
+# FP16 + GPU path (LoRA adapter, ~165 MB) — use with TransformersClient
+.venv/Scripts/python -m huggingface_hub snapshot_download \
+    ramyun/adelie-qwen-roleplay-v2-lora \
+    --local-dir models/ours/qwen-roleplay-v2
+
+# CPU path (q4_k_m GGUF, ~4.4 GB) — use with GGUFClient, no GPU needed
+.venv/Scripts/python -m huggingface_hub snapshot_download \
+    ramyun/adelie-qwen-roleplay-v2-gguf \
+    --local-dir models/ours/qwen-roleplay-v2-gguf
+```
+
+Both inherit the **Tongyi Qianwen License v1** from the Qwen2.5-7B base. See the model cards on HF for full provenance + recipe.
+
 ## Run
 
 ```bash
