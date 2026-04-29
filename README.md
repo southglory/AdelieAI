@@ -83,7 +83,7 @@ Three industry verticals showcase the tier ladder out of the box. Same engine, t
 
 [![/demo/knowledge — ancient archive with ancient_dragon](docs/screenshots/24_knowledge_live.png)](docs/screenshots/24_knowledge_live.png)
 
-`/health` introspects which tier the running build supports. Full framework + decision tree: [`docs/CAPABILITY_TIERS.md`](docs/CAPABILITY_TIERS.md). Repo organization (7-area modular design): [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Per-area docs (personas / retrieval / tools / agents / training / serving / evaluation): see [`docs/`](docs/).
+`/health` introspects which tier the running build supports. Full framework + decision tree: [`docs/CAPABILITY_TIERS.md`](docs/CAPABILITY_TIERS.md). Repo organization (7-area modular design): [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Per-area docs (personas / retrieval / tools / agents / training / serving / evaluation): see [`docs/`](docs/). Terminology cheat-sheet (Hybrid system prompt + Hybrid RAG 용어): [`docs/GLOSSARY.md`](docs/GLOSSARY.md).
 
 Don't have weights downloaded? `StubLLMClient` ships persona-aware canned replies — visiting the demos still shows in-character output (penguin / fish / knight / merchant / detective each have a small canned set), so OSS visitors get the *shape* without GPU.
 
