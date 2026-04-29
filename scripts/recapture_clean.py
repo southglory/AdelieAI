@@ -6,18 +6,18 @@ pending sessions piled up across runs).
 
 This script:
   1. Targets a *fresh* set of SQLite databases (`shot_chats.db`, `shot_sessions.db`)
-     — the running server must point at them via env vars (set by the wrapper
-     in `recapture_clean.bat` or by exporting before launch).
+     — the running server must point at them via env vars.
   2. Resets each persona's chat history before seeding (POST /reset).
   3. Drives a *meaningful* conversation per persona — not "test1" — so the
      screenshot shows the actual trained voice.
-  4. Captures 6 frames in one Playwright run, in this order:
-        01_personas.png            (clean gallery, no badges yet)
-        02_chat_thread.png         (merchant chat, 3 turns, real model voice)
+  4. Captures 4 frames in one Playwright run:
+        02_chat_thread.png         (merchant chat, 3 turns, real model voice,
+                                    rating widget visible under each turn)
         03_sessions.png            (clean empty-state sessions page)
-        30_rating_widget.png       (chat scrolled to show 3-tier widget)
         31_personas_with_dpo.png   (gallery after rating divergence → DPO N)
-        32_metrics_dashboard.png   (per-persona rollup)
+        32_metrics_dashboard.png   (per-persona activity rollup)
+     We dropped 01_personas (covered by 31) and 30_rating_widget (was a
+     duplicate of 02) — see commit history for the README cleanup.
 
 Usage (against a server already running with the real LoRA mounted):
     PYTHONUTF8=1 .venv/Scripts/python -X utf8 \\
@@ -158,10 +158,6 @@ def main() -> int:
         ctx = browser.new_context(viewport={"width": 1280, "height": 900})
         page = ctx.new_page()
 
-        # 01 — fresh gallery (turns=0 across the board)
-        page.goto(f"{args.url}/web/personas", wait_until="networkidle")
-        shot(page, out, "01_personas")
-
         # 03 — empty sessions page (no pending crud)
         page.goto(f"{args.url}/web/sessions", wait_until="networkidle")
         shot(page, out, "03_sessions")
@@ -170,13 +166,9 @@ def main() -> int:
         print("\n=== Phase 2: real-model chats + ratings ===")
         seed_phase_2_conversations(args.url)
 
-        # 02 — merchant chat thread, full page
+        # 02 — merchant chat thread, full page (rating widget visible per turn)
         page.goto(f"{args.url}/web/chat/cynical_merchant", wait_until="networkidle")
         shot(page, out, "02_chat_thread")
-
-        # 30 — same view, the rating widget is now populated
-        # (we reuse 02's page; if we wanted to bias the framing we'd scroll)
-        shot(page, out, "30_rating_widget")
 
         # 31 — gallery with rating-summary + DPO badges
         page.goto(f"{args.url}/web/personas", wait_until="networkidle")
@@ -188,7 +180,7 @@ def main() -> int:
 
         browser.close()
 
-    print("\n🎉 done. Refreshed 6 PNGs under docs/screenshots/.")
+    print("\n🎉 done. Refreshed 4 PNGs under docs/screenshots/.")
     return 0
 
 

@@ -65,8 +65,6 @@ A persona's tech needs depend on the use case. AdelieAI is built as a **tiered s
 
 Three industry verticals showcase the tier ladder out of the box. Same engine, three industry-shaped faces — each captured below against the real `Qwen2.5-7B-Instruct + qwen-roleplay-v2` on a single RTX 3090.
 
-[![demos index — three verticals, three tiers](docs/screenshots/20_demos_index.png)](docs/screenshots/20_demos_index.png)
-
 | route | persona | tier | what it shows |
 |---|---|---|---|
 | [`/demo/gaming`](docs/screenshots/21_gaming_live.png) | 💰 `cynical_merchant` | **T2** | RPG shop scene — JRPG dialogue HUD, inventory mock, gold counter, blunt merchant voice |
@@ -106,29 +104,23 @@ AdelieAI ships:
 
 All frames captured against the *real* `Qwen2.5-7B-Instruct + qwen-roleplay-v2` on a single RTX 3090 — note the `llm:` indicator in the top nav, the in-character Korean replies, and real per-turn latency (2–4 s).
 
-### Persona engine basics
+### Chat thread (real model voice + rating widget + DPO badge)
 
-[![Persona gallery — five characters with tier badge + industry pill + base / adapter / RAG / turn-count meta](docs/screenshots/01_personas.png)](docs/screenshots/01_personas.png)
+[![Chat thread — three merchant turns on the same prompt, distinct in-character replies, 3-tier rating widget under each turn, DPO 2 badge in the header](docs/screenshots/02_chat_thread.png)](docs/screenshots/02_chat_thread.png)
 
-> Persona gallery — five characters with **tier badge** + **industry pill** + base / adapter / RAG / turn-count meta. Click a card to open a chat thread.
+> Three turns with the merchant on the *same* prompt ("할인 좀 안 돼?"), three distinct in-character replies (real-model sampling), real per-turn latency (`{latency}s · {tokens} tok`), and the **3-tier rating widget** (`good · fine · bad · dismiss`) under each turn — rated good/good/bad here, so the header surfaces **DPO 2** harvest-ready pairs. Persona meta + system prompt in the sidebar.
 
-[![Chat thread with per-turn telemetry and persona sidebar](docs/screenshots/02_chat_thread.png)](docs/screenshots/02_chat_thread.png)
+### Gallery — six personas + per-card rating rollup
 
-> Chat thread — three turns with the merchant on the *same* prompt ("할인 좀 안 돼?"), three distinct in-character replies, real-model latency inline (`{latency}s · {tokens} tok`), persona meta + system prompt sidebar. The 3-tier rating widget under each turn drives DPO data harvesting (next section).
+[![Persona gallery — six characters with tier badge + industry pill + base / adapter / RAG / turn-count meta. Cards that have accumulated chat history also surface a per-persona rating-summary footer (good · fine · bad · dismiss counts) plus the DPO N harvest-ready badge.](docs/screenshots/31_personas_with_dpo.png)](docs/screenshots/31_personas_with_dpo.png)
 
-### DPO data harvesting + observability
+> Six characters — three general role-play (penguin / fish / knight) plus three vertical signatures (cynical_merchant / cold_detective / ancient_dragon). Each card shows tier badge + industry pill + base / adapter / RAG / turn-count meta. Cards with chat history additionally surface a **rating-summary footer** (good · fine · bad · dismiss) and the **DPO N** harvest-ready badge — so you see at a glance which voice has accumulated training-quality preference data.
 
-The same view, focused on the rating widget — three turns rated good/good/bad → 2 chosen-rejected pairs ready for DPO training:
+### `/web/metrics` — per-persona activity rollup
 
-[![3-tier rating widget under each assistant turn — good · fine · bad · dismiss, with header badge aggregating counts + DPO pair total](docs/screenshots/30_rating_widget.png)](docs/screenshots/30_rating_widget.png)
+[![/web/metrics — per-persona activity rollup (turns / tokens / avg latency / last activity), real model latency 2-4 s](docs/screenshots/32_metrics_dashboard.png)](docs/screenshots/32_metrics_dashboard.png)
 
-The gallery exposes the same rollup per persona, so you see at a glance which voice has accumulated training-quality preference data:
-
-[![Gallery cards now expose per-persona rating rollup + DPO N badge](docs/screenshots/31_personas_with_dpo.png)](docs/screenshots/31_personas_with_dpo.png)
-
-`/web/metrics` complements the rating signal with operational metrics (turns / tokens / avg latency / last activity):
-
-[![/web/metrics — per-persona activity rollup with real model latency (2–4 s)](docs/screenshots/32_metrics_dashboard.png)](docs/screenshots/32_metrics_dashboard.png)
+> Built from `chat_turns`; complementary to the agentic-flow event log under `/web/sessions`.
 
 ### Sessions + introspection (smaller frames)
 
