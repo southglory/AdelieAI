@@ -15,7 +15,7 @@
 
 ---
 
-> ### 🚀 Try the persona voice without training
+> ### 🚀 Try the persona style without training
 >
 > Two flavors of the trained character live on HuggingFace — pull either and run.
 >
@@ -42,14 +42,14 @@
 
 A pipeline that takes you from **persona idea → deployable character**:
 
-1. Prepare 60–120 dialogue pairs in your character's voice
+1. Prepare 60–120 dialogue pairs in your character's style
 2. Train a LoRA adapter on a Qwen 7B base (~80 seconds on a single 3090)
 3. Compare the new character against base + previous versions (LLM-as-judge)
 4. Pack everything into a `.adelie` persona pack — one self-contained artifact
 5. **(v0.2 · current)** Quantize to GGUF q4_k_m — the same persona ships at 1/3 the size (AWQ track parked behind a Windows triton blocker, see `experiments/05_awq_quantize/results.md`)
 6. Drop into a game NPC, Discord bot, customer-service worker, or CLI chat
 
-Each `.adelie` pack is a single character with consistent voice, optional RAG-grounded knowledge, and a reproducible training recipe.
+Each `.adelie` pack is a single character with a consistent style, optional RAG-grounded knowledge, and a reproducible training recipe.
 
 ## Choose your tier
 
@@ -67,25 +67,29 @@ Three industry verticals showcase the tier ladder out of the box. Same engine, t
 
 | route | persona | tier | what it shows |
 |---|---|---|---|
-| [`/demo/gaming`](docs/screenshots/21_gaming_live.png) | 💰 `cynical_merchant` | **T2** | RPG shop scene — JRPG dialogue HUD, inventory mock, gold counter, blunt merchant voice |
+| [`/demo/gaming`](docs/screenshots/21_gaming_live.png) | 💰 `cynical_merchant` | **T2** | RPG shop scene — JRPG dialogue HUD, inventory mock, gold counter, blunt merchant tone |
 | [`/demo/legal`](docs/screenshots/22_legal_live.png) | 🔍 `cold_detective` | **T3** | Noir detective office — cork board with case summary, evidence memos, red string connectors, transcript paper, citation chips, `evidence_search` tool active |
 | [`/demo/knowledge`](docs/screenshots/24_knowledge_live.png) | 🐉 `ancient_dragon` | **T4** | Ancient archive — inline-SVG KG with 8 nodes (asserted edges solid, OWL-inferred edges dashed flowing), parchment-scroll dialogue, side-panel SPARQL query + reasoner output ("☑ consistent" + inferred triples), backed by **real `rdflib` + OWL-RL forward chaining** over a Turtle corpus (transitive `descendantOf+`, subClassOf inference) |
 
-<table>
-  <tr>
-    <td width="33%"><a href="docs/screenshots/21_gaming_live.png"><img src="docs/screenshots/21_gaming_live.png" alt="/demo/gaming — JRPG shop with cynical_merchant"/></a></td>
-    <td width="33%"><a href="docs/screenshots/22_legal_live.png"><img src="docs/screenshots/22_legal_live.png" alt="/demo/legal — noir detective office with cold_detective"/></a></td>
-    <td width="33%"><a href="docs/screenshots/24_knowledge_live.png"><img src="docs/screenshots/24_knowledge_live.png" alt="/demo/knowledge — ancient archive with ancient_dragon"/></a></td>
-  </tr>
-</table>
+**T2 — `/demo/gaming`** · 💰 `cynical_merchant` · JRPG shop scene
+
+[![/demo/gaming — JRPG shop with cynical_merchant](docs/screenshots/21_gaming_live.png)](docs/screenshots/21_gaming_live.png)
+
+**T3 — `/demo/legal`** · 🔍 `cold_detective` · noir detective office with `evidence_search` tool
+
+[![/demo/legal — noir detective office with cold_detective](docs/screenshots/22_legal_live.png)](docs/screenshots/22_legal_live.png)
+
+**T4 — `/demo/knowledge`** · 🐉 `ancient_dragon` · ancient archive backed by `rdflib` + OWL-RL
+
+[![/demo/knowledge — ancient archive with ancient_dragon](docs/screenshots/24_knowledge_live.png)](docs/screenshots/24_knowledge_live.png)
 
 `/health` introspects which tier the running build supports. Full framework + decision tree: [`docs/CAPABILITY_TIERS.md`](docs/CAPABILITY_TIERS.md). Repo organization (7-area modular design): [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Per-area docs (personas / retrieval / tools / agents / training / serving / evaluation): see [`docs/`](docs/).
 
-Don't have weights downloaded? `StubLLMClient` ships persona-aware canned voice — visiting the demos still shows in-character replies (penguin / fish / knight / merchant / detective each have a small canned set), so OSS visitors get the *shape* without GPU.
+Don't have weights downloaded? `StubLLMClient` ships persona-aware canned replies — visiting the demos still shows in-character output (penguin / fish / knight / merchant / detective each have a small canned set), so OSS visitors get the *shape* without GPU.
 
 ## Why a *persona engine*?
 
-Most LLM toolkits give you "an assistant" — generic, hedged, breaks character. Game NPCs, brand voices, virtual companions, vertical-domain workers all need the *opposite*: a model that stays in character across long interactions and runs on hardware the user actually has.
+Most LLM toolkits give you "an assistant" — generic, hedged, breaks character. Game NPCs, brand personas, virtual companions, vertical-domain workers all need the *opposite*: a model that stays in character across long interactions and runs on hardware the user actually has.
 
 AdelieAI ships:
 
@@ -100,11 +104,37 @@ AdelieAI ships:
 - **From-scratch nanoGPT** for the curious — same architecture family as Qwen2 (RMSNorm + RoPE + SwiGLU)
 - **HTMX + Jinja2 console** so you can drive everything from a browser
 
+## Three modes — Persona, Demo, Session
+
+The web console exposes three top-level modes. They share infrastructure where it makes sense, but answer different questions:
+
+| Mode | Route | Answers | Backend |
+|---|---|---|---|
+| **Persona** | `/web/personas` · `/web/chat/{id}` | "What does this character say?" — open-ended chat with a persona, multi-turn, with the rating widget per turn | `core/personas/` (chat store, registry, grounding) |
+| **Demo** | `/demo/{gaming, legal, knowledge}` | "What does this character look like in its native habitat?" — same chat backend, dressed up with a per-vertical UI skin | shares `core/personas/` chat backend; UI is `core/api/templates/demos/` |
+| **Session** | `/web/sessions` · `/web/sessions/{id}` | "Given a research goal, what's the synthesized answer?" — a one-shot agentic run, not a chat. State machine + event log + final report with citations | `core/agent/` (4-node LangGraph) + `core/session/` (state machine) |
+
+### How they relate
+
+- **Persona = identity + style** — one character, one chat thread.
+- **Demo = vertical skin** — same persona engine, different visual layer per industry. The merchant in `/web/chat/cynical_merchant` and `/demo/gaming` is the *same* underlying chat; only the rendering differs.
+- **Session = workflow** — orthogonal to personas. A goal goes in (e.g. *"summarize Q3 finance risks"*), a structured event log comes out, ending with a planner → retriever → reasoner → reporter chain. Optionally persona-flavored, but its primary purpose is *reasoning task completion*, not *character interaction*.
+
+```
+Persona  (who) ──────┐
+                     ├─ Demo (where) — visual layer
+                     └─ same chat infrastructure
+
+Session  (what task) — separate track, agentic + RAG-grounded
+```
+
+The screenshots below walk through each mode.
+
 ## Live console
 
 All frames captured against the *real* `Qwen2.5-7B-Instruct + qwen-roleplay-v2` on a single RTX 3090 — note the `llm:` indicator in the top nav, the in-character Korean replies, and real per-turn latency (2–4 s).
 
-### Chat thread (real model voice + rating widget + DPO badge)
+### Chat thread (real model output + rating widget + DPO badge)
 
 [![Chat thread — three merchant turns on the same prompt, distinct in-character replies, 3-tier rating widget under each turn, DPO 2 badge in the header](docs/screenshots/02_chat_thread.png)](docs/screenshots/02_chat_thread.png)
 
@@ -114,7 +144,7 @@ All frames captured against the *real* `Qwen2.5-7B-Instruct + qwen-roleplay-v2` 
 
 [![Persona gallery — six characters with tier badge + industry pill + base / adapter / RAG / turn-count meta. Cards that have accumulated chat history also surface a per-persona rating-summary footer (good · fine · bad · dismiss counts) plus the DPO N harvest-ready badge.](docs/screenshots/31_personas_with_dpo.png)](docs/screenshots/31_personas_with_dpo.png)
 
-> Six characters — three general role-play (penguin / fish / knight) plus three vertical signatures (cynical_merchant / cold_detective / ancient_dragon). Each card shows tier badge + industry pill + base / adapter / RAG / turn-count meta. Cards with chat history additionally surface a **rating-summary footer** (good · fine · bad · dismiss) and the **DPO N** harvest-ready badge — so you see at a glance which voice has accumulated training-quality preference data.
+> Six characters — three general role-play (penguin / fish / knight) plus three vertical signatures (cynical_merchant / cold_detective / ancient_dragon). Each card shows tier badge + industry pill + base / adapter / RAG / turn-count meta. Cards with chat history additionally surface a **rating-summary footer** (good · fine · bad · dismiss) and the **DPO N** harvest-ready badge — so you see at a glance which character has accumulated training-quality preference data.
 
 ### `/web/metrics` — per-persona activity rollup
 
@@ -283,7 +313,7 @@ python -m venv .venv
 
 ### (Optional) Pull our pre-trained Korean role-play adapter
 
-If you want to skip the training run and just hear the persona voice, two flavors are published:
+If you want to skip the training run and just try the persona style, two flavors are published:
 
 ```bash
 # FP16 + GPU path (LoRA adapter, ~165 MB) — use with TransformersClient
@@ -323,7 +353,7 @@ When a persona pack is mounted, `llm` becomes `base+persona-id`.
 
 ## Chat with a persona
 
-Three Korean role-play personas ship out of the box: **🐧 `penguin_relaxed`** (Adelie penguin lazing on the ice), **🐟 `fish_swimmer`** (a fish drifting through open water), and **⚔️ `knight_brave`** (a sworn knight facing down dragons). The display names render in Korean (`놀고 있는 펭귄` / `헤엄치는 물고기` / `용감한 기사`) because the personas speak Korean — that's the voice the LoRA was trained on. With or without a LoRA adapter mounted, the system prompt drives the character; with `qwen-roleplay-v2` mounted, the LoRA additionally tilts the voice toward role-play register.
+Three Korean role-play personas ship out of the box: **🐧 `penguin_relaxed`** (Adelie penguin lazing on the ice), **🐟 `fish_swimmer`** (a fish drifting through open water), and **⚔️ `knight_brave`** (a sworn knight facing down dragons). The display names render in Korean (`놀고 있는 펭귄` / `헤엄치는 물고기` / `용감한 기사`) because the personas speak Korean — that's the style the LoRA was trained on. With or without a LoRA adapter mounted, the system prompt drives the character; with `qwen-roleplay-v2` mounted, the LoRA additionally tilts the model toward the role-play register.
 
 1. Open `/web/personas` — gallery of cards with base / adapter / RAG status / turn count.
 2. Click a card → `/web/chat/{persona_id}` — chat thread with the character.
@@ -337,7 +367,7 @@ The persona registry is hard-coded for v0.1.5; v0.2 swaps it for `.adelie` pack 
 
 ## Quantize a persona
 
-The v0.2 quantization recipe lives in the sibling `differentia-llm` repo (the private incubator). The same merged checkpoint shrinks from 14.5 GB → 4.36 GB (a 3.25× compression) without losing the role-play voice.
+The v0.2 quantization recipe lives in the sibling `differentia-llm` repo (the private incubator). The same merged checkpoint shrinks from 14.5 GB → 4.36 GB (a 3.25× compression) without losing the role-play style.
 
 ```bash
 # 0. one-time: prebuilt CPU wheel + format library
@@ -362,7 +392,7 @@ MODEL_PATH=models/ours/qwen-roleplay-v2-gguf/qwen-roleplay-v2.q4_k_m.gguf \
 PYTHONUTF8=1 .venv/Scripts/uvicorn core.api.app:app --port 8770
 ```
 
-`/health` reports `llm: qwen-roleplay-v2-gguf` and the persona gallery serves the quantized character voice with the same UX as the FP16 path. CPU inference is slower than GPU FP16 (a few seconds per turn vs sub-second), so the GPU path remains canonical for production demos; the GGUF path is for shipping.
+`/health` reports `llm: qwen-roleplay-v2-gguf` and the persona gallery serves the quantized character with the same UX as the FP16 path. CPU inference is slower than GPU FP16 (a few seconds per turn vs sub-second), so the GPU path remains canonical for production demos; the GGUF path is for shipping.
 
 [`models/ours/qwen-roleplay-v2-gguf/recipe.md`](models/ours/qwen-roleplay-v2-gguf/recipe.md) and [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md) document the full recipe.
 

@@ -69,7 +69,7 @@ Part of the [AdelieAI](https://github.com/southglory/AdelieAI) persona engine.
 
 ## What it does
 
-Tilts the base model's voice toward **Korean role-play register** while
+Tilts the base model toward a **Korean role-play register** while
 preserving general assistant capability. Trained on a *mixed* dataset
 (60 role-play pairs + 60 general pairs) to avoid catastrophic forgetting
 of general knowledge — see Pitfalls below.
@@ -82,7 +82,7 @@ prompt:
 - ⚔️ `knight_brave`   — sworn knight, formal-speech, faces dragons head-on
 
 Verticals (cynical_merchant / cold_detective / ancient_dragon) also mount
-this same adapter — voice differences are driven by their system prompts
+this same adapter — style differences are driven by their system prompts
 + optional grounding (RAG / KG).
 
 ## Training recipe
@@ -150,8 +150,8 @@ Round-by-round audit trail under `docs/eval/iterations/` in the AdelieAI repo.
 ## Pitfalls (what we learned)
 
 1. **60 pairs is *not* enough** to beat the v2 mixed baseline. We tried — see [`docs/MILESTONES.md` `[training/lora] (1st cycle)`](https://github.com/southglory/AdelieAI/blob/main/docs/MILESTONES.md). Plan for 200+ pairs OR mix in general-domain pairs at ≥1:1 ratio (this adapter does the latter).
-2. **Single-register data → catastrophic forgetting**. v1 trained on role-play pairs only — general Python/RAG questions devolved into character voice. v2's mixed dataset is the regularizer.
-3. **Hybrid EN+KO system prompts** beat pure Korean for grounding-heavy personas (T3+). English rules block + Korean voice anchors keeps both signals strong.
+2. **Single-register data → catastrophic forgetting**. v1 trained on role-play pairs only — general Python/RAG questions devolved into character style. v2's mixed dataset is the regularizer.
+3. **Hybrid EN+KO system prompts** beat pure Korean for grounding-heavy personas (T3+). English rules block + Korean style anchors keeps both signals strong.
 
 ## License
 
@@ -260,7 +260,7 @@ PYTHONUTF8=1 .venv/Scripts/uvicorn core.api.app:app --port 8770
 | Runtime VRAM | 0 (pure CPU) |
 | Runtime RAM | ~5 GB |
 
-Voice preservation verified: 4/5 persona prompts + 5/5 general prompts pass under greedy decoding (see [`recipe.md`](./recipe.md)).
+Style preservation verified: 4/5 persona prompts + 5/5 general prompts pass under greedy decoding (see [`recipe.md`](./recipe.md)).
 
 ## Recommended sampling
 
