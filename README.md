@@ -15,6 +15,24 @@
 
 ---
 
+> ### 🚀 Try the persona voice without training
+>
+> Skip the 30-min training run — pull the LoRA / GGUF we already shipped on HuggingFace:
+>
+> ```bash
+> # GPU path (FP16 + LoRA, ~165 MB)
+> huggingface-cli download ramyun/adelie-qwen-roleplay-v2-lora \
+>     --local-dir models/ours/qwen-roleplay-v2
+>
+> # CPU path (q4_k_m GGUF, ~4.4 GB) — laptop-friendly, no GPU needed
+> huggingface-cli download ramyun/adelie-qwen-roleplay-v2-gguf \
+>     --local-dir models/ours/qwen-roleplay-v2-gguf
+> ```
+>
+> Models: [`ramyun/adelie-qwen-roleplay-v2-lora`](https://huggingface.co/ramyun/adelie-qwen-roleplay-v2-lora) · [`ramyun/adelie-qwen-roleplay-v2-gguf`](https://huggingface.co/ramyun/adelie-qwen-roleplay-v2-gguf) — both inherit Qwen2.5's Tongyi Qianwen License.
+
+---
+
 ## What you get
 
 A pipeline that takes you from **persona idea → deployable character**:
