@@ -17,19 +17,24 @@
 
 > ### 🚀 Try the persona voice without training
 >
-> Skip the 30-min training run — pull the LoRA / GGUF we already shipped on HuggingFace:
+> Two flavors of the trained character live on HuggingFace — pull either and run.
+>
+> | Flavor | Size | Hardware | Repo |
+> |---|---|---|---|
+> | **LoRA + FP16** | ~165 MB | GPU (≥14 GB VRAM) | [`ramyun/adelie-qwen-roleplay-v2-lora`](https://huggingface.co/ramyun/adelie-qwen-roleplay-v2-lora) |
+> | **GGUF q4_k_m** | ~4.4 GB | CPU laptop | [`ramyun/adelie-qwen-roleplay-v2-gguf`](https://huggingface.co/ramyun/adelie-qwen-roleplay-v2-gguf) |
 >
 > ```bash
-> # GPU path (FP16 + LoRA, ~165 MB)
+> # GPU path
 > huggingface-cli download ramyun/adelie-qwen-roleplay-v2-lora \
 >     --local-dir models/ours/qwen-roleplay-v2
 >
-> # CPU path (q4_k_m GGUF, ~4.4 GB) — laptop-friendly, no GPU needed
+> # CPU path — no GPU needed
 > huggingface-cli download ramyun/adelie-qwen-roleplay-v2-gguf \
 >     --local-dir models/ours/qwen-roleplay-v2-gguf
 > ```
 >
-> Models: [`ramyun/adelie-qwen-roleplay-v2-lora`](https://huggingface.co/ramyun/adelie-qwen-roleplay-v2-lora) · [`ramyun/adelie-qwen-roleplay-v2-gguf`](https://huggingface.co/ramyun/adelie-qwen-roleplay-v2-gguf) — both inherit Qwen2.5's Tongyi Qianwen License.
+> Both inherit Qwen2.5's [Tongyi Qianwen License](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/blob/main/LICENSE) — commercial use permitted under the terms there.
 
 ---
 
@@ -99,56 +104,63 @@ AdelieAI ships:
 
 ## Live console
 
-![persona gallery — pick a character to chat with](docs/screenshots/01_personas.png)
+All frames captured against the *real* `Qwen2.5-7B-Instruct + qwen-roleplay-v2` on a single RTX 3090 — note the `llm:` indicator in the top nav, the in-character Korean replies, and real per-turn latency (2–4 s).
 
-Three Korean role-play personas (penguin / fish / knight) ship out of the box. Click a card to open a chat thread; per-turn token count and latency surface inline. Screenshots above are captured against `Qwen2.5-7B-Instruct + qwen-roleplay-v2` on a single RTX 3090 — note the live `llm:` indicator in the top nav and the in-character Korean replies.
+### Persona engine basics
+
+[![Persona gallery — five characters with tier badge + industry pill + base / adapter / RAG / turn-count meta](docs/screenshots/01_personas.png)](docs/screenshots/01_personas.png)
+
+> Persona gallery — five characters with **tier badge** + **industry pill** + base / adapter / RAG / turn-count meta. Click a card to open a chat thread.
+
+[![Chat thread with per-turn telemetry and persona sidebar](docs/screenshots/02_chat_thread.png)](docs/screenshots/02_chat_thread.png)
+
+> Chat thread — three turns with the merchant on the *same* prompt ("할인 좀 안 돼?"), three distinct in-character replies, real-model latency inline (`{latency}s · {tokens} tok`), persona meta + system prompt sidebar. The 3-tier rating widget under each turn drives DPO data harvesting (next section).
+
+### DPO data harvesting + observability
+
+The same view, focused on the rating widget — three turns rated good/good/bad → 2 chosen-rejected pairs ready for DPO training:
+
+[![3-tier rating widget under each assistant turn — good · fine · bad · dismiss, with header badge aggregating counts + DPO pair total](docs/screenshots/30_rating_widget.png)](docs/screenshots/30_rating_widget.png)
+
+The gallery exposes the same rollup per persona, so you see at a glance which voice has accumulated training-quality preference data:
+
+[![Gallery cards now expose per-persona rating rollup + DPO N badge](docs/screenshots/31_personas_with_dpo.png)](docs/screenshots/31_personas_with_dpo.png)
+
+`/web/metrics` complements the rating signal with operational metrics (turns / tokens / avg latency / last activity):
+
+[![/web/metrics — per-persona activity rollup with real model latency (2–4 s)](docs/screenshots/32_metrics_dashboard.png)](docs/screenshots/32_metrics_dashboard.png)
+
+### Sessions + introspection (smaller frames)
 
 <table>
   <tr>
-    <td width="33%" align="center">
-      <a href="docs/screenshots/01_personas.png"><img src="docs/screenshots/01_personas.png" alt="Persona gallery"/></a><br/>
-      <sub><b>01 — Persona gallery</b><br/>tier badge + industry pill + base / adapter / RAG / turn-count meta</sub>
-    </td>
-    <td width="33%" align="center">
-      <a href="docs/screenshots/02_chat_thread.png"><img src="docs/screenshots/02_chat_thread.png" alt="Chat thread"/></a><br/>
-      <sub><b>02 — Chat thread</b><br/>per-turn telemetry (<code>{latency}s · {tokens} tok</code>) + persona sidebar</sub>
-    </td>
-    <td width="33%" align="center">
+    <td width="50%" align="center">
       <a href="docs/screenshots/03_sessions.png"><img src="docs/screenshots/03_sessions.png" alt="Agentic sessions"/></a><br/>
-      <sub><b>03 — Agentic sessions</b><br/>RAG-grounded one-shot runs (planner → retriever → reasoner → reporter)</sub>
+      <sub><b>Agentic sessions</b> — RAG-grounded runs (planner → retriever → reasoner → reporter)</sub>
+    </td>
+    <td width="50%" align="center">
+      <a href="docs/screenshots/05_health.png"><img src="docs/screenshots/05_health.png" alt="Health endpoint"/></a><br/>
+      <sub><code>/health</code> JSON — active backends, retriever, store</sub>
     </td>
   </tr>
   <tr>
     <td align="center">
       <a href="docs/screenshots/04_docs_unavailable.png"><img src="docs/screenshots/04_docs_unavailable.png" alt="Docs fallback"/></a><br/>
-      <sub><b>04 — Docs fallback</b><br/>graceful behavior when no embedder is mounted</sub>
-    </td>
-    <td align="center">
-      <a href="docs/screenshots/05_health.png"><img src="docs/screenshots/05_health.png" alt="Health endpoint"/></a><br/>
-      <sub><b>05 — <code>/health</code> JSON</b><br/>active backends, retriever, store</sub>
+      <sub><b>Docs fallback</b> — graceful behavior when no embedder is mounted</sub>
     </td>
     <td align="center">
       <a href="docs/screenshots/06_swagger.png"><img src="docs/screenshots/06_swagger.png" alt="Swagger UI"/></a><br/>
-      <sub><b>06 — Swagger UI</b><br/>API surface at <code>/docs</code></sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="docs/screenshots/30_rating_widget.png"><img src="docs/screenshots/30_rating_widget.png" alt="3-tier rating widget"/></a><br/>
-      <sub><b>30 — Rating widget</b><br/>3-tier + dismiss under each turn (good · fine · bad · dismiss). Header badge aggregates counts + DPO pair total</sub>
-    </td>
-    <td align="center">
-      <a href="docs/screenshots/31_personas_with_dpo.png"><img src="docs/screenshots/31_personas_with_dpo.png" alt="Gallery with DPO badge"/></a><br/>
-      <sub><b>31 — Gallery with DPO badge</b><br/>per-persona rating rollup + harvest-ready pair count</sub>
-    </td>
-    <td align="center">
-      <a href="docs/screenshots/32_metrics_dashboard.png"><img src="docs/screenshots/32_metrics_dashboard.png" alt="Metrics dashboard"/></a><br/>
-      <sub><b>32 — <code>/web/metrics</code></b><br/>per-persona activity (turns / tokens / avg latency / last activity)</sub>
+      <sub><b>Swagger UI</b> — API surface at <code>/docs</code></sub>
     </td>
   </tr>
 </table>
 
-> Regenerate any time with `scripts/capture_screenshots.py` (legacy gallery + chat) or `scripts/capture_step6_screenshots.py` (rating widget + DPO badges + metrics) — Playwright walkers that seed via HTTP and snap PNGs against a running console.
+> **A note on file numbering** — `docs/screenshots/` files are clustered by feature track, not numbered sequentially. The gaps are intentional, leaving room to add captures inside a track without renaming the rest:
+> - `01–06` console basics (persona gallery, chat thread, sessions, health, docs, swagger)
+> - `20–24` industry vertical demos (`/demo/gaming`, `/demo/legal`, `/demo/knowledge`)
+> - `30–32` Step 6 features (rating widget, DPO badges, `/web/metrics`)
+>
+> Regenerate any time with `scripts/recapture_clean.py` (resets DBs first, drives real-model conversations, snaps the six core frames) or `scripts/capture_screenshots.py` (legacy walker for 01–06 only).
 
 ## Hardware footprint
 
