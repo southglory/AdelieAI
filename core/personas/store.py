@@ -110,6 +110,10 @@ class ChatStore(Protocol):
         self, persona_id: str, user_id: str
     ) -> RatingStats: ...
 
+    async def gallery_aggregates(
+        self, user_id: str
+    ) -> dict[str, tuple[int, RatingStats]]: ...
+
     async def metrics_for_user(
         self, user_id: str
     ) -> list[PersonaMetrics]: ...
@@ -186,6 +190,19 @@ class InMemoryChatStore:
     ) -> "RatingStats":
         turns = await self.list_turns(persona_id, user_id)
         return _compute_rating_stats(turns)
+
+    async def gallery_aggregates(
+        self, user_id: str
+    ) -> dict[str, tuple[int, "RatingStats"]]:
+        by_persona: dict[str, list[ChatTurn]] = {}
+        for t in self._turns:
+            if t.user_id != user_id:
+                continue
+            by_persona.setdefault(t.persona_id, []).append(t)
+        return {
+            pid: (len(ts), _compute_rating_stats(ts))
+            for pid, ts in by_persona.items()
+        }
 
     async def metrics_for_user(self, user_id: str) -> list[PersonaMetrics]:
         by_persona: dict[str, list[ChatTurn]] = {}
@@ -389,6 +406,28 @@ class SqlChatStore:
         # 2 SQL aggregates + a separate dpo scan.
         turns = await self.list_turns(persona_id, user_id)
         return _compute_rating_stats(turns)
+
+    async def gallery_aggregates(
+        self, user_id: str
+    ) -> dict[str, tuple[int, "RatingStats"]]:
+        """Single SQL pass for the gallery — one query yields turn count
+        and rating stats for every persona this user has touched, instead
+        of N+1 round-trips per persona."""
+        async with self._sessionmaker() as session:
+            stmt = (
+                select(_ChatTurnRow)
+                .where(_ChatTurnRow.user_id == user_id)
+                .order_by(_ChatTurnRow.id.asc())
+            )
+            rows = (await session.execute(stmt)).scalars().all()
+        by_persona: dict[str, list[ChatTurn]] = {}
+        for row in rows:
+            t = row.to_dataclass()
+            by_persona.setdefault(t.persona_id, []).append(t)
+        return {
+            pid: (len(ts), _compute_rating_stats(ts))
+            for pid, ts in by_persona.items()
+        }
 
     async def metrics_for_user(self, user_id: str) -> list[PersonaMetrics]:
         async with self._sessionmaker() as session:
