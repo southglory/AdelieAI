@@ -16,7 +16,7 @@ from fastapi.templating import Jinja2Templates
 from core.personas.chat import submit_chat_turn
 from core.personas.grounding import build_grounding_context
 from core.personas.registry import get_persona, list_personas
-from core.personas.store import ChatStore
+from core.personas.store import ChatStore, RatingStats
 from core.serving.protocols import GenerationParams, LLMClient
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -46,12 +46,16 @@ def build_personas_web_router(
     ):
         uid = _user(user_id)
         personas = list_personas()
+        aggregates = await chat_store.gallery_aggregates(uid)
+        empty_stats = RatingStats(
+            good=0, fine=0, bad=0, dismiss=0, assistant_total=0, dpo_pairs=0,
+        )
         counts = {
-            p.persona_id: await chat_store.turn_count(p.persona_id, uid)
+            p.persona_id: aggregates.get(p.persona_id, (0, empty_stats))[0]
             for p in personas
         }
         stats = {
-            p.persona_id: await chat_store.rating_stats(p.persona_id, uid)
+            p.persona_id: aggregates.get(p.persona_id, (0, empty_stats))[1]
             for p in personas
         }
         return templates.TemplateResponse(
