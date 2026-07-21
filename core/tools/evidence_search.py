@@ -1,65 +1,138 @@
-"""Stub `evidence_search` tool — T3 capability marker.
+"""Corpus-backed evidence retrieval for the legal persona.
 
-A bare-bones Tool implementation that lets `cold_detective` reach into
-a tiny mock case file. The point of this stub is twofold:
-
-  1. Activate T3 in `_compute_tier` (a non-empty ToolRegistry) so
-     /health and /demo/legal can declare a working tool stack.
-  2. Demonstrate the Tool Protocol shape with a real concrete class
-     for future contributors to copy.
-
-The mock corpus is a fixed dict, NOT a real RAG. When AdelieAI grows
-a `RagAsTool` adapter, this module is expected to be replaced or
-upgraded — same Tool name + input schema, real retriever underneath.
+``EvidenceSearch`` keeps the small synchronous Tool contract used by the
+grounding layer.  Retrieval itself sits behind ``EvidenceSearchPort`` so a
+vector or remote backend can replace the filesystem adapter without changing
+the tool name, input schema, or output shape.
 """
 from __future__ import annotations
 
-from typing import Any
+import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Protocol
 
 from core.tools.protocols import Tool
 
 
-# Tiny mock corpus — keyword-indexed for demo purposes only.
-# Each "file" is a string with simulated case-file content.
-_CASE_FILES: dict[str, str] = {
-    "evidence_1.md": (
-        "현장에서 발견된 유리 조각. 안쪽 방향으로 떨어져 있었음. "
-        "추정 충격 위치는 방 내부에서 외부로 향한 힘. "
-        "참고: case_log_07 의 23:00 진술과 어긋남."
-    ),
-    "case_log_07.md": (
-        "23:00 — 용의자 A 의 진술: 사건 당시 가게에 있었음. "
-        "23:30 — 동일 인물의 두 번째 진술: 사건 당시 거리에 있었음. "
-        "두 진술 모두 같은 시각에 대한 것이며, 위치만 다름. 위증 의심."
-    ),
-    "timeline.txt": (
-        "11:04 — 멈춘 시계의 시각 (조작 추정). "
-        "11:30 — 실제 사건 시각. "
-        "11:45 — 이웃이 비명 소리를 들음. "
-        "12:10 — 경찰 도착."
-    ),
-    "witness_a.md": (
-        "증인 A: 11시경 가게 앞을 지나갔다고 진술. "
-        "보강 증언: 같은 시각 거리에 있었다는 다른 증인 진술 1건 존재. "
-        "신뢰도 중간 — 시간 인식이 흐릿함."
-    ),
-}
+DEFAULT_CORPUS_DIR = (
+    Path(__file__).resolve().parents[2]
+    / "personas"
+    / "cold_detective"
+    / "rag_corpus"
+)
+SUPPORTED_SUFFIXES = frozenset({".md", ".txt"})
 
 
-def _search_keywords(query: str) -> list[dict[str, Any]]:
-    """Naive keyword overlap. Returns hits with file path + snippet."""
-    query_terms = [t.lower().strip() for t in query.replace(",", " ").split() if t.strip()]
-    hits = []
-    for path, body in _CASE_FILES.items():
-        score = sum(body.lower().count(t) for t in query_terms)
-        if score > 0:
-            hits.append({"path": path, "score": score, "snippet": body})
-    hits.sort(key=lambda h: h["score"], reverse=True)
-    return hits
+class EvidenceCorpusError(RuntimeError):
+    """The configured evidence source cannot be searched."""
+
+
+@dataclass(frozen=True)
+class EvidenceHit:
+    path: str
+    score: float
+    snippet: str
+
+
+@dataclass(frozen=True)
+class EvidenceSearchResult:
+    hits: tuple[EvidenceHit, ...]
+    total_hits: int
+    source: dict[str, Any]
+
+
+class EvidenceSearchPort(Protocol):
+    """Replaceable synchronous retrieval boundary used by the Tool facade."""
+
+    backend_name: str
+
+    def search(self, query: str, *, top_k: int) -> EvidenceSearchResult: ...
+
+
+def _terms(text: str) -> list[str]:
+    """Tokenize Latin, numeric, and Korean text without extra dependencies."""
+    return [term for term in re.findall(r"[\w가-힣]+", text.lower()) if term]
+
+
+class FileCorpusEvidenceSearch:
+    """Deterministic keyword search over UTF-8 Markdown/text case files."""
+
+    backend_name = "filesystem_keyword"
+
+    def __init__(self, corpus_dir: str | Path = DEFAULT_CORPUS_DIR) -> None:
+        self.corpus_dir = Path(corpus_dir)
+
+    def _documents(self) -> list[tuple[str, str]]:
+        if not self.corpus_dir.is_dir():
+            raise EvidenceCorpusError(
+                f"evidence corpus directory not found: {self.corpus_dir}. "
+                "Create the directory with UTF-8 .md/.txt case files or pass "
+                "EvidenceSearch(corpus_dir=...)."
+            )
+
+        paths = sorted(
+            path
+            for path in self.corpus_dir.rglob("*")
+            if path.is_file() and path.suffix.lower() in SUPPORTED_SUFFIXES
+        )
+        if not paths:
+            raise EvidenceCorpusError(
+                f"evidence corpus contains no supported files: {self.corpus_dir}. "
+                "Add at least one UTF-8 .md or .txt case file."
+            )
+
+        documents: list[tuple[str, str]] = []
+        for path in paths:
+            try:
+                body = path.read_text(encoding="utf-8").strip()
+            except (OSError, UnicodeError) as exc:
+                raise EvidenceCorpusError(
+                    f"could not read evidence file {path}: {exc}. "
+                    "Ensure the file is readable UTF-8 text."
+                ) from exc
+            if body:
+                documents.append((path.relative_to(self.corpus_dir).as_posix(), body))
+
+        if not documents:
+            raise EvidenceCorpusError(
+                f"evidence corpus has no non-empty files: {self.corpus_dir}. "
+                "Add evidence text before searching."
+            )
+        return documents
+
+    def search(self, query: str, *, top_k: int) -> EvidenceSearchResult:
+        documents = self._documents()
+        query_terms = _terms(query)
+        ranked: list[EvidenceHit] = []
+        for relative_path, body in documents:
+            searchable = body.lower()
+            term_score = sum(searchable.count(term) for term in query_terms)
+            phrase_bonus = (
+                2
+                if len(query_terms) > 1 and query.lower().strip() in searchable
+                else 0
+            )
+            score = float(term_score + phrase_bonus)
+            if score > 0:
+                ranked.append(
+                    EvidenceHit(path=relative_path, score=score, snippet=body)
+                )
+
+        ranked.sort(key=lambda hit: (-hit.score, hit.path))
+        return EvidenceSearchResult(
+            hits=tuple(ranked[:top_k]),
+            total_hits=len(ranked),
+            source={
+                "type": "directory",
+                "path": str(self.corpus_dir),
+                "files_indexed": len(documents),
+            },
+        )
 
 
 class EvidenceSearch:
-    """Concrete Tool — `evidence_search` over the mock case corpus."""
+    """Tool facade for searching the active case corpus."""
 
     name = "evidence_search"
     description = (
@@ -78,17 +151,52 @@ class EvidenceSearch:
         "required": ["query"],
     }
 
+    def __init__(
+        self,
+        backend: EvidenceSearchPort | None = None,
+        *,
+        corpus_dir: str | Path | None = None,
+        top_k: int = 4,
+    ) -> None:
+        if backend is not None and corpus_dir is not None:
+            raise ValueError("pass backend or corpus_dir, not both")
+        if top_k < 1:
+            raise ValueError("top_k must be at least 1")
+        self.backend = backend or FileCorpusEvidenceSearch(corpus_dir or DEFAULT_CORPUS_DIR)
+        self.top_k = top_k
+
     def call(self, arguments: dict[str, Any]) -> Any:
         query = arguments.get("query", "")
         if not isinstance(query, str) or not query.strip():
-            return {"hits": [], "error": "query must be a non-empty string"}
-        hits = _search_keywords(query)
+            return {
+                "hits": [],
+                "error": "query must be a non-empty string",
+                "backend": self.backend.backend_name,
+                "source": None,
+            }
+
+        try:
+            result = self.backend.search(query.strip(), top_k=self.top_k)
+        except EvidenceCorpusError as exc:
+            return {
+                "query": query,
+                "n_hits": 0,
+                "hits": [],
+                "error": str(exc),
+                "backend": self.backend.backend_name,
+                "source": {"type": "unavailable"},
+            }
+
         return {
             "query": query,
-            "n_hits": len(hits),
-            "hits": hits[:4],  # top_k mirrors the persona's recommended default
+            "n_hits": result.total_hits,
+            "hits": [
+                {"path": hit.path, "score": hit.score, "snippet": hit.snippet}
+                for hit in result.hits
+            ],
+            "backend": self.backend.backend_name,
+            "source": result.source,
         }
 
 
-# Sanity check: this class satisfies the runtime-checkable Tool Protocol.
 assert isinstance(EvidenceSearch(), Tool)

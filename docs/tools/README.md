@@ -12,11 +12,13 @@ LLM 이 호출 가능한 *부수효과 도구*. retrieval / 계산 / 외부 API.
 - [`core/tools/__init__.py`](../../core/tools/__init__.py) — 공개 export
 - [`core/tools/evidence_search.py`](../../core/tools/evidence_search.py) — 첫 구체 도구 (legal vertical)
 
-## 현재 상태 (v0.2.5)
+## 현재 상태
 
 - ✅ Tool Protocol 정의 (name + description + input_schema + call)
 - ✅ ToolRegistry (내장)
-- ✅ EvidenceSearch (mock 사건 파일 4개)
+- ✅ EvidenceSearch (실제 persona `rag_corpus/`의 UTF-8 Markdown/text 파일 검색)
+- ✅ 교체 가능한 동기식 `EvidenceSearchPort` + 기본 `FileCorpusEvidenceSearch` adapter
+- ✅ 검색 결과에 backend/source metadata, 코퍼스 누락 시 복구 가능한 오류 제공
 - ✅ build_app 가 default 로 EvidenceSearch 등록 → tier_status.T3 = "ok (1 tool)"
 - 🔄 LLM 측 진짜 function calling 통합 (Qwen2.5 의 `<tool_call>` 토큰 활용)
 - ❌ 다른 도구들 (`graph_query`, `timeline_check`, `cross_reference`, `web_search`, ...)
@@ -88,7 +90,13 @@ reg.register(CalculatorTool())
 - 도구 호출이 답변 정확도 향상시켰는가? — [`docs/eval/methods/faithfulness.md`](../eval/methods/faithfulness.md)
 - 답변에 도구 결과가 인용되었는가? — [`docs/eval/methods/citation_coverage.md`](../eval/methods/citation_coverage.md)
 
-도구 자체의 단위 테스트는 입력 → 출력 결정성 + Protocol 적합 검증.
+도구 자체의 단위 테스트는 입력 → 출력 결정성 + Protocol 적합 검증. `EvidenceSearch`
+결과는 기존 `query`, `n_hits`, `hits` 계약을 유지하며, 운영 진단용 `backend`, `source`
+metadata를 함께 반환한다.
+
+기본 corpus 경로는 `personas/cold_detective/rag_corpus/`다. 다른 저장소를 연결할 때는
+`EvidenceSearch(backend=...)`로 `EvidenceSearchPort` 구현을 주입한다. 로컬 디렉터리만
+바꾸려면 `EvidenceSearch(corpus_dir=...)`를 사용한다.
 
 ## 로드맵
 

@@ -305,9 +305,9 @@ def build_app(
         os.environ.get("ADELIE_PACKS_DIR", "packs")
     )
 
-    # T3 — default tool registry. Registers the evidence_search stub used
-    # by /demo/legal so `_compute_tier` can declare "T3: ok (1 tool)" out
-    # of the box. Real tool wiring per persona is a future milestone.
+    # T3 — default tool registry. The legal demo uses a corpus-backed
+    # evidence_search adapter; future deployments can inject another backend
+    # behind the same tool contract.
     tool_registry = ToolRegistry()
     tool_registry.register(EvidenceSearch())
     app.state.tool_registry = tool_registry
