@@ -8,8 +8,8 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![tests](https://img.shields.io/badge/tests-221%20passing-brightgreen.svg)](#testing)
-[![Persona Pack v0.1](https://img.shields.io/badge/persona%20pack-v0.1-blueviolet.svg)](docs/PERSONA_PACK.md)
+[![tests](https://img.shields.io/badge/tests-323%20passing-brightgreen.svg)](#testing)
+[![Persona Pack v0.3](https://img.shields.io/badge/persona%20pack-v0.3%20draft-blueviolet.svg)](docs/PERSONA_PACK.md)
 
 </div>
 
@@ -132,7 +132,19 @@ The screenshots below walk through each mode.
 
 ## Live console
 
-All frames captured against the *real* `Qwen2.5-7B-Instruct + qwen-roleplay-v2` on a single RTX 3090 — note the `llm:` indicator in the top nav, the in-character Korean replies, and real per-turn latency (2–4 s).
+The model-output frames below were captured against the *real*
+`Qwen2.5-7B-Instruct + qwen-roleplay-v2` on a single RTX 3090. The Adelie Drop
+activation frame intentionally uses the zero-weight Stub fallback so its clean
+install path remains reproducible.
+
+### Adelie Drop — portable character import
+
+[![Adelie Drop — Character Card V2 or .adelie import with active-runtime visibility](docs/screenshots/33_adelie_drop_import.png)](docs/screenshots/33_adelie_drop_import.png)
+
+> Drop a Character Card V2 JSON/PNG or zipped `.adelie` control pack, inspect
+> the active local runtime, and continue directly into the existing chat and
+> feedback loop. The screenshot uses the honest Stub fallback; pass `--model`
+> to `adelie run` for an explicit local or Hugging Face GGUF.
 
 ### Chat thread (real model output + rating widget + DPO badge)
 
@@ -181,6 +193,7 @@ All frames captured against the *real* `Qwen2.5-7B-Instruct + qwen-roleplay-v2` 
 > - `01–06` console basics (persona gallery, chat thread, sessions, health, docs, swagger)
 > - `20–24` industry vertical demos (`/demo/gaming`, `/demo/legal`, `/demo/knowledge`)
 > - `30–32` Step 6 features (rating widget, DPO badges, `/web/metrics`)
+> - `33` Adelie Drop portable character import
 >
 > Regenerate any time with `scripts/recapture_clean.py` (resets DBs first, drives real-model conversations, snaps the six core frames) or `scripts/capture_screenshots.py` (legacy walker for 01–06 only).
 
@@ -278,7 +291,7 @@ Full spec: [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md). Roadmap to v0.2 adds 
 | **Training** | TRL `SFTTrainer` LoRA, plus a pure-PyTorch nanoGPT for from-scratch experiments |
 | **Logging** | Structured JSON + per-request id propagation |
 | **Quantization** | GGUF q4_k_m via llama-cpp-python; merged adapter → 4.4 GB single file (3.25× smaller) |
-| **Tests** | 221 unit + Playwright E2E walker |
+| **Tests** | 323 passing + Playwright E2E walker |
 
 ## Design principles
 
@@ -310,6 +323,28 @@ python -m venv .venv
     BAAI/bge-reranker-v2-m3 \
     --local-dir models/upstream/bge-reranker-v2-m3
 ```
+
+### Adelie Drop — import a character and run
+
+After installing the project, Character Card V2 JSON/PNG and zipped `.adelie`
+packs share one activation path:
+
+```bash
+# Opens the imported character in the local web console (Stub works immediately)
+adelie run ./my-character.json
+
+# Run the same character with an existing local GGUF
+pip install -e ".[cpu]"
+adelie run ./my-character.png --model ./models/my-model.q4_k_m.gguf
+
+# Or resolve one explicit GGUF file from Hugging Face into the shared cache
+adelie run ./my-character.json \
+  --model hf://ramyun/adelie-qwen-roleplay-v2-gguf/qwen-roleplay-v2.q4_k_m.gguf
+```
+
+The same flow is visible at `http://localhost:8770/web/personas/import`.
+Imports are limited to 10 MB control files; multi-gigabyte weights are resolved
+separately so multiple characters can share one local model.
 
 ### (Optional) Pull our pre-trained Korean role-play adapter
 
@@ -363,7 +398,9 @@ Three Korean role-play personas ship out of the box: **🐧 `penguin_relaxed`** 
 
 Persistence: every turn is stored in `data/chats.db` (SQLite by default; swap via `CHAT_DATABASE_URL`).
 
-The persona registry is hard-coded for v0.1.5; v0.2 swaps it for `.adelie` pack auto-discovery — see [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md).
+Six built-in personas remain available, and validated `.adelie` directories under
+`packs/` are auto-discovered on each request. Set `ADELIE_PACKS_DIR` to use a
+different location. See [`docs/PERSONA_PACK.md`](docs/PERSONA_PACK.md).
 
 ## Quantize a persona
 
@@ -416,7 +453,10 @@ PYTHONUTF8=1 .venv/Scripts/uvicorn core.api.app:app --port 8770
 
 ## Design a new persona
 
-Want a sixth character? `personas/_template/` is the starting point — duplicate it, fill in the sheet, write 60 + 60 dialogue pairs, train. [`docs/persona_design_guide.md`](docs/persona_design_guide.md) walks through the design decisions, the good/bad pair examples, and seven traps from the v1 → v2 cycle. Five empty slots (`personas/npc1/` … `personas/npc5/`) are pre-allocated for the v0.3 multi-persona work (experiments 09 · 11 · 12 in the `differentia-llm` sibling repo).
+Want another character? Import an existing Character Card through Adelie Drop,
+or start from `personas/_template/`, fill in the sheet, and write 60 + 60 dialogue
+pairs before training. [`docs/persona_design_guide.md`](docs/persona_design_guide.md)
+documents the design decisions and traps from the v1 → v2 cycle.
 
 ## Compare personas
 
@@ -457,7 +497,7 @@ A 69M model trains end-to-end in ~5 minutes on an RTX 3090.
 ## Testing
 
 ```bash
-# 161 unit tests
+# full unit and integration suite
 .venv/Scripts/python -m pytest tests -q
 
 # End-to-end Playwright walk

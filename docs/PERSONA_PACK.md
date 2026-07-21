@@ -1,8 +1,13 @@
 # Persona Pack Format Specification
 
-A *persona pack* is a self-contained directory (or `.zip`) bundling everything needed to run a single character with consistent voice and grounded knowledge.
+A *persona pack* is a portable directory (or `.zip`) containing one character's
+identity, behavior, grounding, provenance, and runtime requirements. An offline
+bundle may additionally embed model weights; prompt-only packs share the active
+local runtime.
 
-> Spec status: **v0.2 draft**. v0.1 layout is stable. v0.2 adds the GGUF q4_k_m variant — *implemented and shipping*. AWQ variant remains roadmap (parked behind a Windows triton blocker — re-opens on Linux/WSL).
+> Spec status: **v0.3 draft**. v0.1 layout is stable; v0.2 adds runtime
+> variants; v0.3 implements validation, discovery, Character Card import, and
+> the prompt-only control-plane profile used by Adelie Drop.
 
 ## Layout (v0.1)
 
@@ -62,16 +67,22 @@ A *persona pack* is a self-contained directory (or `.zip`) bundling everything n
 
 ## Loading a persona
 
-```python
-from adelie import Persona
+```bash
+# Validate an unpacked pack
+adelie validate packs/penguin_relaxed.adelie
 
-p = Persona.load("packs/penguin_relaxed.adelie")
+# Import Character Card V2 JSON/PNG or a zipped .adelie, then open chat
+adelie run ./character.json
 
-async for token in p.stream("이 동물원은 어떻게 생각해?"):
-    print(token, end="", flush=True)
+# Explicit local runtime
+adelie run ./character.png --model ./models/persona.q4_k_m.gguf
 ```
 
-The SDK loads `base_model`, applies `adapter`, and injects `system_prompt`. If `rag.enabled` is true, queries are augmented with hybrid retrieval over `rag_corpus/` before generation.
+The runtime discovers validated directories in `packs/` and injects their system
+prompt into the existing chat pipeline. Character Card V2 fields are normalized
+into `MANIFEST.json` plus `system_prompt.md`. The active model can be shared by
+many prompt-only packs; local and `hf://` model references are resolved by the
+CLI before the server boots.
 
 ## Validation rules
 
@@ -84,7 +95,22 @@ A pack is valid if:
 - If `rag.enabled` is true, `rag_corpus/` exists with at least one indexable document
 - Base model declared in `base_model.id` is locally available (or downloadable)
 
-The CLI ships a validator: `python -m adelie.persona validate path/to/persona.adelie/`.
+The CLI validator is `adelie validate path/to/persona.adelie/`.
+
+## v0.3 — portable control plane
+
+An `.adelie` pack is the small, portable control plane for identity, prompt,
+optional RAG corpus, provenance, and runtime requirements. Model weights may be
+embedded as a variant for an offline bundle or resolved separately and shared.
+This avoids duplicating a 4.4 GB GGUF for every character. The decision and
+rollback path are recorded in [`docs/adr/0001-portable-persona-control-plane.md`](adr/0001-portable-persona-control-plane.md).
+
+Implemented import formats:
+
+- Character Card V2 JSON
+- Character Card V2 PNG with `chara` metadata
+- ZIP archives containing exactly one Adelie manifest
+- already-unpacked `packs/*.adelie/` directories through auto-discovery
 
 ## v0.2 — quantization variants
 

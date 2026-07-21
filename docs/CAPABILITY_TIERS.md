@@ -47,7 +47,7 @@
 | **Voice 정확도** | 정확도와 voice 의 균형 — 자문 톤 + 인용 의무 |
 | **지식** | RAG 가 retrieval-as-tool 로 LLM 의 의도적 호출 대상 |
 | **하드웨어** | 서버 GPU (도구 호출 latency 누적) |
-| **AdelieAI** | ⚠️ DPO trainer 미구현, `core/tools/protocols.py` Protocol 만 (구현 0). v0.5 마일스톤 |
+| **AdelieAI** | ⚠️ DPO trainer와 LLM-driven function calling은 미구현. Tool Protocol/Registry와 corpus-backed `evidence_search` filesystem adapter는 동작하며 grounding 단계에서 호출됨. |
 
 ### T4 — Domain Expert
 

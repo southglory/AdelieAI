@@ -177,7 +177,7 @@ Auto-generated Swagger lives at `http://localhost:8770/docs`.
 ## 12. Test reproduction
 
 ```bash
-# 147 unit tests
+# full unit and integration suite
 .venv/Scripts/python -m pytest tests -q
 
 # E2E Playwright walk (~20 s). -o addopts= unsets the unit-mode "-p no:playwright" flag.

@@ -18,9 +18,9 @@ personas/
 
 | persona | vertical | tier | 상태 |
 |---|---|---|---|
-| `cynical_merchant` | 🎮 gaming | T2 | 🔄 디자인 대기 (Step 2) |
-| `cold_detective` | ⚖️ legal | T3 | 🔄 디자인 대기 (Step 3) |
-| `ancient_dragon` | 🏛️ knowledge | T4 | 🔄 디자인 대기 (Step 3) |
+| `cynical_merchant` | 🎮 gaming | T2 | ✅ 데모·평가·학습 페어 동작 |
+| `cold_detective` | ⚖️ legal | T3 | ✅ corpus-backed evidence search 동작 |
+| `ancient_dragon` | 🏛️ knowledge | T4 | ✅ rdflib + OWL-RL 추론 동작 |
 
 ## 새 페르소나 추가 절차
 

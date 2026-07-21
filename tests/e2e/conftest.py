@@ -42,12 +42,16 @@ def base_url() -> str:
     )
     env["DATABASE_URL"] = f"sqlite+aiosqlite:///{(repo / 'data' / 'e2e_sessions.db').as_posix()}"
     env["DOCS_DATABASE_URL"] = f"sqlite+aiosqlite:///{(repo / 'data' / 'e2e_docs.db').as_posix()}"
+    env["CHAT_DATABASE_URL"] = f"sqlite+aiosqlite:///{(repo / 'data' / 'e2e_chats.db').as_posix()}"
     env["CHROMA_DIR"] = str(repo / "data" / "e2e_chroma")
+    env["ADELIE_PACKS_DIR"] = str(repo / "data" / "e2e_packs")
     (repo / "data" / "e2e_sessions.db").unlink(missing_ok=True)
     (repo / "data" / "e2e_docs.db").unlink(missing_ok=True)
+    (repo / "data" / "e2e_chats.db").unlink(missing_ok=True)
     import shutil
 
     shutil.rmtree(repo / "data" / "e2e_chroma", ignore_errors=True)
+    shutil.rmtree(repo / "data" / "e2e_packs", ignore_errors=True)
 
     cmd = [
         sys.executable, "-m", "uvicorn", "core.api.app:app",

@@ -12,6 +12,7 @@
 - [`core/personas/grounding.py`](../../core/personas/grounding.py) — KG · evidence_search 결과를 시스템 프롬프트에 inject
 - [`core/personas/chat.py`](../../core/personas/chat.py) — `submit_chat_turn` (채팅 흐름의 핵심)
 - [`core/personas/store.py`](../../core/personas/store.py) — `ChatStore` Protocol + `InMemory` / `Sql` 구현
+- [`core/personas/packs.py`](../../core/personas/packs.py) — `.adelie` 검증·자동 발견 + Character Card import
 - [`core/personas/__init__.py`](../../core/personas/__init__.py) — 공개 export
 
 페르소나별 자산:
@@ -29,7 +30,7 @@
 - 🔄 Per-persona LoRA 학습 파이프라인 (Step 6.1)
 - 🔄 Behavioral test suite per persona (Step 6.1)
 - ❌ DPO 단계 (사용자 별점 데이터 필요)
-- ❌ `.adelie` 팩 자동 발견 (v0.3 마일스톤)
+- ✅ `.adelie` 팩 검증·자동 발견 + Character Card V2 JSON/PNG import
 
 ## 사용법
 
@@ -79,7 +80,7 @@ T3 (탐정) / T4 (용) 페르소나는 추가로:
 - [ ] **Step 6.1**: per-persona LoRA 학습 (`qwen-{id}-v1`)
 - [ ] **Step 6.1**: per-persona behavioral test suite
 - [ ] **Step 6.2**: 사용자 1-5 별점 → 페어 자동 수확
-- [ ] **v0.3**: `.adelie` 팩 자동 발견 (디스크에서 페르소나 로드)
+- [x] **v0.3**: `.adelie` 팩 검증·자동 발견 + Character Card import
 - [ ] **v0.4**: DPO 단계 (별점 차이 → preferred/rejected pair)
 - [ ] **v0.6**: 멀티페르소나 orchestra (T5)
 
