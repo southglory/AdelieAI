@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block main %}
+<section class="drop-shell">
+    <div class="drop-copy">
+        <span class="eyebrow">ADELIE DROP · LOCAL FIRST</span>
+        <h1>Bring a character.<br><em>Keep it yours.</em></h1>
+        <p>
+            Character Card V2 또는 <code>.adelie</code> 팩을 가져오면
+            검증된 시스템 프롬프트로 즉시 로컬 채팅을 시작합니다.
+        </p>
+        <div class="promise-row">
+            <span><b>01</b> import</span>
+            <span><b>02</b> inspect</span>
+            <span><b>03</b> chat locally</span>
+        </div>
+    </div>
+
+    <form class="drop-zone" action="/web/personas/import" method="post" enctype="multipart/form-data">
+        <div class="penguin-mark">🐧</div>
+        <h2>Drop your persona</h2>
+        <p>PNG · JSON · zipped .adelie</p>
+        <label class="file-control">
+            <input id="persona-file" type="file" name="persona_file" accept=".png,.json,.adelie,.zip" required>
+            <span id="file-label">Choose a character file</span>
+        </label>
+        <button type="submit">Import &amp; open chat <span>→</span></button>
+        <small>최대 10 MB의 제어 파일만 허용합니다. 모델 가중치는 별도로 연결됩니다.</small>
+        {% if error %}<div class="import-error" role="alert"><b>Import blocked</b>{{ error }}</div>{% endif %}
+    </form>
+</section>
+
+<section class="format-strip" aria-label="supported formats">
+    <div><strong>Character Card V2</strong><span>기존 캐릭터 생태계에서 가져오기</span></div>
+    <div><strong>Adelie Pack</strong><span>검증된 prompt · RAG · runtime metadata</span></div>
+    <div><strong>Private runtime</strong><span>Stub 즉시 체험 · GGUF 연결 준비</span></div>
+</section>
+
+<style>
+.drop-shell { display:grid; grid-template-columns:1.05fr .95fr; gap:3rem; align-items:center; min-height:560px; padding:2.5rem; border-radius:24px; background:radial-gradient(circle at 10% 10%,#163754 0,#0c2034 38%,#071521 100%); color:#f5fbff; overflow:hidden; position:relative; }
+.drop-shell:after { content:""; position:absolute; width:340px; height:340px; border:1px solid rgba(130,216,255,.16); border-radius:50%; left:-180px; bottom:-180px; box-shadow:0 0 0 55px rgba(130,216,255,.04),0 0 0 110px rgba(130,216,255,.025); }
+.drop-copy,.drop-zone { position:relative; z-index:1; }
+.eyebrow { color:#77d4ff; letter-spacing:.16em; font-size:.72rem; font-weight:800; }
+.drop-copy h1 { font-size:clamp(2.8rem,6vw,5.2rem); line-height:.92; letter-spacing:-.055em; margin:1.1rem 0 1.5rem; }
+.drop-copy h1 em { color:#8de3c1; font-style:normal; }
+.drop-copy>p { max-width:530px; color:#b9cad7; font-size:1.05rem; line-height:1.7; }
+.promise-row { display:flex; gap:1.5rem; margin-top:2rem; color:#d5e2ea; font:600 .78rem ui-monospace,monospace; text-transform:uppercase; }
+.promise-row b { color:#77d4ff; margin-right:.35rem; }
+.drop-zone { min-height:390px; padding:2.2rem; border:1px solid rgba(141,227,193,.45); border-radius:20px; background:rgba(7,21,33,.72); box-shadow:0 24px 70px rgba(0,0,0,.28); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; backdrop-filter:blur(12px); }
+.penguin-mark { font-size:3.2rem; filter:drop-shadow(0 8px 16px rgba(0,0,0,.25)); }
+.drop-zone h2 { margin:.7rem 0 .25rem; font-size:1.55rem; }
+.drop-zone>p { margin:0 0 1.4rem; color:#8297a6; font:500 .78rem ui-monospace,monospace; }
+.file-control { width:100%; border:1px dashed #49677b; border-radius:12px; padding:1.2rem; color:#c8d7e0; cursor:pointer; background:rgba(255,255,255,.025); }
+.file-control:hover { border-color:#77d4ff; background:rgba(119,212,255,.05); }
+.file-control input { position:absolute; opacity:0; pointer-events:none; }
+.drop-zone button { width:100%; margin-top:1rem; padding:.9rem 1rem; border:0; border-radius:10px; background:#8de3c1; color:#092419; font-weight:800; font-size:.95rem; }
+.drop-zone button:hover { background:#a8edd2; }
+.drop-zone button span { float:right; }
+.drop-zone small { color:#718796; margin-top:1rem; line-height:1.45; }
+.import-error { width:100%; box-sizing:border-box; margin-top:1rem; padding:.75rem; background:#451d25; border:1px solid #8c3d4d; border-radius:8px; color:#ffd8df; text-align:left; font-size:.82rem; }
+.import-error b { display:block; margin-bottom:.2rem; }
+.format-strip { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; margin-top:1rem; background:#dce5ea; border:1px solid #dce5ea; border-radius:14px; overflow:hidden; }
+.format-strip div { background:#f8fafb; padding:1rem 1.2rem; display:flex; flex-direction:column; gap:.25rem; }
+.format-strip strong { font-size:.86rem; }
+.format-strip span { color:#71808b; font-size:.76rem; }
+@media(max-width:760px){.drop-shell{grid-template-columns:1fr;padding:1.4rem;gap:1.5rem}.drop-copy h1{font-size:3.2rem}.drop-zone{min-height:330px}.format-strip{grid-template-columns:1fr}}
+</style>
+<script>
+document.getElementById('persona-file').addEventListener('change', function () {
+  document.getElementById('file-label').textContent = this.files[0]?.name || 'Choose a character file';
+});
+</script>
+{% endblock %}

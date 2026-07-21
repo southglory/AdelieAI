@@ -135,6 +135,9 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+packs/*.adelie/
+packs/*.adelie
+packs/*.zip
 
 # Spyder project settings
 .spyderproject

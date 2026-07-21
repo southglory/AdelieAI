@@ -11,6 +11,7 @@ shape of `Persona` already mirrors the persona-pack MANIFEST.json
 schema.
 """
 
+import os
 from dataclasses import dataclass
 
 
@@ -32,6 +33,8 @@ class Persona:
     #     ("general" | "gaming" | "legal" | "knowledge" | ...)
     target_tier: int = 2
     industry: str = "general"
+    pack_path: str | None = None
+    source_format: str = "built-in"
 
 
 _PENGUIN = Persona(
@@ -223,11 +226,21 @@ DEFAULT_PERSONAS: tuple[Persona, ...] = (
 
 
 def list_personas() -> tuple[Persona, ...]:
-    return DEFAULT_PERSONAS
+    # Discovery stays read-only and stateless: installing/removing a pack is
+    # reflected on the next request without mutating a process-global registry.
+    from core.personas.packs import discover_persona_packs
+
+    imported = discover_persona_packs(os.environ.get("ADELIE_PACKS_DIR", "packs"))
+    built_in_ids = {persona.persona_id for persona in DEFAULT_PERSONAS}
+    return DEFAULT_PERSONAS + tuple(
+        loaded.persona
+        for loaded in imported
+        if loaded.persona.persona_id not in built_in_ids
+    )
 
 
 def get_persona(persona_id: str) -> Persona | None:
-    for p in DEFAULT_PERSONAS:
+    for p in list_personas():
         if p.persona_id == persona_id:
             return p
     return None

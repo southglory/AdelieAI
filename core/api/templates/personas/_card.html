@@ -5,6 +5,7 @@
     </div>
     <div class="name">{{ p.display_name }}</div>
     <div class="industry-row">
+        {% if p.source_format != "built-in" %}<span class="industry-pill">imported · {{ p.source_format }}</span>{% endif %}
         {% if p.industry == "general" %}
             <span class="industry-pill industry-general">general</span>
         {% else %}
