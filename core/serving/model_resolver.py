@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib.util
+import os
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Protocol
@@ -57,8 +59,16 @@ class LocalModelResolver:
 class HuggingFaceModelResolver:
     """Resolve ``hf://owner/repo/path/to/file.gguf`` into the HF cache."""
 
-    def __init__(self, downloader: Callable[..., str] | None = None) -> None:
+    def __init__(
+        self,
+        downloader: Callable[..., str] | None = None,
+        cache_dir: str | Path | None = None,
+    ) -> None:
         self._downloader = downloader
+        self.cache_dir = Path(
+            cache_dir
+            or os.environ.get("ADELIE_MODEL_CACHE", Path.home() / ".cache" / "adelie" / "models")
+        )
 
     def supports(self, reference: str) -> bool:
         return reference.startswith("hf://")
@@ -89,12 +99,42 @@ class HuggingFaceModelResolver:
                 ) from None
             downloader = hf_hub_download
         try:
-            local = Path(downloader(repo_id=repo_id, filename=filename)).resolve()
+            downloaded = Path(downloader(repo_id=repo_id, filename=filename)).resolve()
         except Exception as exc:
             raise ModelResolutionError(
                 f"could not download {repo_id}/{filename}: {exc}"
             ) from exc
+        local = self._materialize_runtime_path(repo_id, filename, downloaded)
         return ResolvedModel(reference, local, "gguf", "huggingface", downloaded=True)
+
+    def _materialize_runtime_path(
+        self, repo_id: str, filename: str, downloaded: Path
+    ) -> Path:
+        """Give content-addressed HF blobs a stable runtime suffix without copying."""
+        if downloaded.suffix.lower() == ".gguf":
+            return downloaded
+        if not downloaded.is_file():
+            raise ModelResolutionError(f"downloaded model is missing: {downloaded}")
+
+        repo_slug = repo_id.replace("/", "--")
+        destination = (self.cache_dir / repo_slug / filename).resolve()
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.exists():
+            if destination.stat().st_size == downloaded.stat().st_size:
+                return destination
+            destination.unlink()
+
+        temporary = destination.with_name(destination.name + ".tmp")
+        temporary.unlink(missing_ok=True)
+        try:
+            os.link(downloaded, temporary)
+        except OSError:
+            try:
+                temporary.symlink_to(downloaded)
+            except OSError:
+                shutil.copy2(downloaded, temporary)
+        temporary.replace(destination)
+        return destination
 
 
 class DefaultModelResolver:
