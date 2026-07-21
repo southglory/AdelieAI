@@ -40,6 +40,12 @@ def main(argv: list[str] | None = None) -> int:
 
         os.environ["ADELIE_PACKS_DIR"] = str(args.packs_dir)
         if args.model:
+            if args.model.startswith("hf://"):
+                print(
+                    "model: resolving Hugging Face GGUF "
+                    "(the first run downloads and caches several GB)...",
+                    flush=True,
+                )
             resolved_model = DefaultModelResolver().resolve(args.model)
             os.environ["MODEL_PATH"] = str(resolved_model.local_path)
             print(

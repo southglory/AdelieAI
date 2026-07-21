@@ -24,7 +24,8 @@ def base_url() -> str:
     spawn a fresh uvicorn with a stub LLM (fast + deterministic).
     """
     if E2E_BASE_URL:
-        return E2E_BASE_URL.rstrip("/")
+        yield E2E_BASE_URL.rstrip("/")
+        return
 
     port = _free_port()
     repo = Path(__file__).resolve().parents[2]

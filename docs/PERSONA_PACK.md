@@ -76,13 +76,18 @@ adelie run ./character.json
 
 # Explicit local runtime
 adelie run ./character.png --model ./models/persona.q4_k_m.gguf
+
+# Or download once and reuse a shared Hugging Face GGUF cache
+adelie run ./character.json \
+  --model hf://ramyun/adelie-qwen-roleplay-v2-gguf/qwen-roleplay-v2.q4_k_m.gguf
 ```
 
 The runtime discovers validated directories in `packs/` and injects their system
 prompt into the existing chat pipeline. Character Card V2 fields are normalized
 into `MANIFEST.json` plus `system_prompt.md`. The active model can be shared by
 many prompt-only packs; local and `hf://` model references are resolved by the
-CLI before the server boots.
+CLI before the server boots. Content-addressed Hugging Face blobs are exposed
+through a stable `.gguf` runtime link, avoiding a second multi-gigabyte copy.
 
 ## Validation rules
 
