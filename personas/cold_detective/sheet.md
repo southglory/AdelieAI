@@ -57,7 +57,7 @@
 
 | tool | 입력 | 출력 | 상태 |
 |---|---|---|---|
-| `evidence_search(query: str)` | 자연어 질문 | 사건 파일에서 관련 증거 chunk + 경로 | stub (canned response) |
+| `evidence_search(query: str)` | 자연어 질문 | 사건 파일에서 관련 증거 chunk + 경로 | 구현됨 (filesystem corpus adapter) |
 | `timeline_check(event_a: str, event_b: str)` | 두 사건 | 선후관계 + 시간 간격 | 미구현 (Step 4 후보) |
 | `cross_reference(person_a: str, person_b: str)` | 두 인물 | 관계망 (T4 KG 와 연결) | 미구현 |
 
@@ -66,11 +66,11 @@
 | | |
 |---|---|
 | 활성 여부 | yes (T3 의 retrieval-as-tool 의 backing store) |
-| 코퍼스 출처 | 사건 파일 mock — `evidence_1.md`, `case_log_07.md`, `timeline.txt`, `witness_a.md` |
-| 청크 사이즈 | 512 |
+| 코퍼스 출처 | `rag_corpus/`의 UTF-8 사건 파일 — `evidence_1.md`, `case_log_07.md`, `timeline.txt`, `witness_a.md` |
+| 검색 단위 | 파일 단위 (현재 사건 파일은 각각 512자 이하) |
 | top_k | 4 |
 
-(Step 3 에서는 mock 데이터로 demo. 실제 RAG 통합은 추후 마일스톤.)
+현재 기본 filesystem keyword adapter를 사용하며, 동일한 동기식 port로 vector/remote retriever를 교체할 수 있다.
 
 ## 시스템 프롬프트
 
@@ -96,7 +96,7 @@
 - [x] 시스템 프롬프트 작성됨 (도구 인지 포함)
 - [x] `dialogue_pairs.jsonl` 시드 15 페어
 - [ ] 60+60 으로 확장
-- [ ] `evidence_search` 도구 실제 RAG 통합 (현재 stub)
+- [x] `evidence_search` 도구 실제 corpus 검색 통합 (filesystem adapter)
 - [ ] 메타 단어 검사 통과
 - [ ] LoRA v1 학습 + 비교 harness 통과
 
