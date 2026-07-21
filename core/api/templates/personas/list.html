@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block main %}
-<h2>Personas <span class="muted">({{ user_id }})</span></h2>
+<div style="display:flex;align-items:center;gap:1rem;">
+    <h2 style="margin-right:auto;">Personas <span class="muted">({{ user_id }})</span></h2>
+    <a href="/web/personas/import" style="padding:.55rem .85rem;border-radius:7px;background:#0c2034;color:#fff;font-weight:700;">＋ Import character</a>
+</div>
 <p class="muted" style="margin-top: -0.4rem;">
     Pick a character. Each one stays in voice across the whole conversation; per-turn token use and latency surface inline.
 </p>

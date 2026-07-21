@@ -17,10 +17,12 @@ from core.api.eval import build_eval_router
 from core.api.eval_web import build_eval_web_router
 from core.api.middleware import RequestContextMiddleware
 from core.api.personas_web import build_personas_web_router
+from core.api.persona_import_web import build_persona_import_router
 from core.api.presets import build_presets_router
 from core.api.web import build_web_router
 from core.logging import configure_logging, get_logger
 from core.personas.store import ChatStore, SqlChatStore
+from core.personas.packs import PersonaImportService
 from core.retrieval.bm25 import InMemoryBM25
 from core.retrieval.chunker import RecursiveTextSplitter
 from core.retrieval.document_store import SqlDocumentStore
@@ -299,6 +301,9 @@ def build_app(
     app.state.ingest = ingest
     app.state.retriever = retriever
     app.state.chat_store = resolved_chat_store
+    app.state.persona_imports = PersonaImportService(
+        os.environ.get("ADELIE_PACKS_DIR", "packs")
+    )
 
     # T3 — default tool registry. Registers the evidence_search stub used
     # by /demo/legal so `_compute_tier` can declare "T3: ok (1 tool)" out
@@ -343,6 +348,7 @@ def build_app(
     app.include_router(
         build_personas_web_router(resolved_chat_store, app.state.llm)
     )
+    app.include_router(build_persona_import_router(app.state.persona_imports))
     app.include_router(build_docs_router(ingest, retriever))
     app.include_router(build_docs_web_router(ingest, retriever))
     app.include_router(build_eval_router(app.state.store, app.state.llm))
