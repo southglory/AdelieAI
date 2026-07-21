@@ -50,13 +50,29 @@ def test_huggingface_download_adapter_returns_cache_path(tmp_path, monkeypatch) 
 
     # This test validates resolver orchestration, not optional llama.cpp.
     monkeypatch.setattr("core.serving.model_resolver._check_runtime", lambda backend: None)
-    result = HuggingFaceModelResolver(downloader).resolve(
+    result = HuggingFaceModelResolver(downloader, cache_dir=tmp_path / "adelie-cache").resolve(
         "hf://owner/repo/model.gguf"
     )
     assert calls == [{"repo_id": "owner/repo", "filename": "model.gguf"}]
     assert result.local_path == model.resolve()
     assert result.downloaded is True
     assert result.source == "huggingface"
+
+
+def test_huggingface_blob_without_suffix_gets_shared_gguf_runtime_link(
+    tmp_path, monkeypatch
+) -> None:
+    blob = tmp_path / "content-addressed-blob"
+    blob.write_bytes(b"GGUF-real-bytes")
+    monkeypatch.setattr("core.serving.model_resolver._check_runtime", lambda backend: None)
+
+    result = HuggingFaceModelResolver(
+        lambda **_: str(blob), cache_dir=tmp_path / "adelie-cache"
+    ).resolve("hf://owner/repo/model.q4_k_m.gguf")
+
+    assert result.local_path.name == "model.q4_k_m.gguf"
+    assert result.local_path.read_bytes() == blob.read_bytes()
+    assert result.local_path.stat().st_ino == blob.stat().st_ino
 
 
 def test_remote_non_gguf_is_rejected_before_download(monkeypatch) -> None:
