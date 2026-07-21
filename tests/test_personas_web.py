@@ -191,13 +191,13 @@ def test_rating_widget_renders_in_assistant_turn(client: TestClient) -> None:
     )
     assert r.status_code == 200
     assert 'class="rating"' in r.text
-    assert "DPO 데이터 수집" in r.text
+    assert "DPO feedback" in r.text
     # 4 rate-btn: bad / fine / good / dismiss
     assert r.text.count('class="rate-btn') == 4
-    assert "👎 bad" in r.text
-    assert "➖ fine" in r.text
-    assert "👍 good" in r.text
-    assert "⊘ dismiss" in r.text
+    assert 'aria-label="bad">bad</button>' in r.text
+    assert 'aria-label="fine">fine</button>' in r.text
+    assert 'aria-label="good">good</button>' in r.text
+    assert 'aria-label="dismiss"' in r.text
 
 
 def test_rate_good_marks_selected_and_label(client: TestClient) -> None:

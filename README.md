@@ -8,7 +8,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![tests](https://img.shields.io/badge/tests-323%20passing-brightgreen.svg)](#testing)
+[![tests](https://img.shields.io/badge/tests-327%20passing-brightgreen.svg)](#testing)
 [![Persona Pack v0.3](https://img.shields.io/badge/persona%20pack-v0.3%20draft-blueviolet.svg)](docs/PERSONA_PACK.md)
 
 </div>
@@ -98,7 +98,7 @@ AdelieAI ships:
 - **TRL + PEFT LoRA training** with reproducibility manifest (`recipe.md` + `MANIFEST.json`)
 - **Adapter comparison harness** with LLM-as-judge scoring
 - **EvalGardener** — agent-in-the-loop self-improving behavioral test suite (`docs/eval/methods/iteration_loop.md`); per-round markdown audit trail under `docs/eval/iterations/`
-- **3-tier rating + dismiss → DPO export** — one-click feedback under each turn (👍 good · ➖ fine · 👎 bad · ⊘ dismiss); `scripts/export_dpo.py` harvests `(chosen, rejected)` JSONL pairs from divergent ratings (RLHF-shaped, not 5-star reviewer)
+- **3-tier rating + dismiss → DPO export** — one-click `good · fine · bad · dismiss` feedback under each turn; `scripts/export_dpo.py` harvests `(chosen, rejected)` JSONL pairs from divergent ratings (RLHF-shaped, not 5-star reviewer)
 - **`/web/metrics` dashboard** — per-persona activity rollup (turns / tokens / avg latency / last activity) on top of the chat log
 - **Improvement timeline** — `docs/MILESTONES.md` records every decision (and N-th return to the same area), so the *why* survives across sessions
 - **From-scratch nanoGPT** for the curious — same architecture family as Qwen2 (RMSNorm + RoPE + SwiGLU)
@@ -132,10 +132,10 @@ The screenshots below walk through each mode.
 
 ## Live console
 
-The model-output frames below were captured against the *real*
-`Qwen2.5-7B-Instruct + qwen-roleplay-v2` on a single RTX 3090. The Adelie Drop
-activation frame intentionally uses the zero-weight Stub fallback so its clean
-install path remains reproducible.
+The model-output frames below include both GPU and CPU captures. The Adelie
+Drop activation frame uses the zero-weight Stub fallback so its clean install
+path remains reproducible; the next frame proves the same import path against
+the published 4.68 GB GGUF on CPU.
 
 ### Adelie Drop — portable character import
 
@@ -145,6 +145,15 @@ install path remains reproducible.
 > the active local runtime, and continue directly into the existing chat and
 > feedback loop. The screenshot uses the honest Stub fallback; pass `--model`
 > to `adelie run` for an explicit local or Hugging Face GGUF.
+
+### Adelie Drop — verified real GGUF on CPU
+
+[![Adelie Drop — imported Character Card chatting through the real q4_k_m GGUF](docs/screenshots/36_adelie_drop_real_gguf.png)](docs/screenshots/36_adelie_drop_real_gguf.png)
+
+> End-to-end browser capture from `adelie run --model hf://…`: Character Card
+> import → live `qwen-roleplay-v2.q4_k_m` runtime → in-character response in
+> **2.7 s / 12 tokens**, with zero browser console or network errors. The first
+> run downloads 4,683,073,600 bytes; later runs reuse the shared cache.
 
 ### Chat thread (real model output + rating widget + DPO badge)
 
@@ -344,7 +353,10 @@ adelie run ./my-character.json \
 
 The same flow is visible at `http://localhost:8770/web/personas/import`.
 Imports are limited to 10 MB control files; multi-gigabyte weights are resolved
-separately so multiple characters can share one local model.
+separately so multiple characters can share one local model. The first remote
+run prints a download notice and stores the model under the Hugging Face cache;
+Adelie materializes a stable `.gguf` hardlink where possible, so this does not
+duplicate the 4.68 GB weight file.
 
 ### (Optional) Pull our pre-trained Korean role-play adapter
 

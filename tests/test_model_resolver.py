@@ -75,6 +75,52 @@ def test_huggingface_blob_without_suffix_gets_shared_gguf_runtime_link(
     assert result.local_path.stat().st_ino == blob.stat().st_ino
 
 
+def test_huggingface_runtime_link_refreshes_for_same_size_new_blob(
+    tmp_path, monkeypatch
+) -> None:
+    first_blob = tmp_path / "first-content-blob"
+    second_blob = tmp_path / "second-content-blob"
+    first_blob.write_bytes(b"old!")
+    second_blob.write_bytes(b"new!")
+    active_blob = [first_blob]
+    monkeypatch.setattr("core.serving.model_resolver._check_runtime", lambda backend: None)
+    resolver = HuggingFaceModelResolver(
+        lambda **_: str(active_blob[0]), cache_dir=tmp_path / "adelie-cache"
+    )
+
+    first = resolver.resolve("hf://owner/repo/model.gguf")
+    active_blob[0] = second_blob
+    second = resolver.resolve("hf://owner/repo/model.gguf")
+
+    assert first.local_path == second.local_path
+    assert second.local_path.read_bytes() == b"new!"
+    assert second.local_path.samefile(second_blob)
+
+
+def test_huggingface_symlink_fallback_keeps_gguf_runtime_name(
+    tmp_path, monkeypatch
+) -> None:
+    blob = tmp_path / "content-blob"
+    blob.write_bytes(b"GGUF")
+    monkeypatch.setattr("core.serving.model_resolver._check_runtime", lambda backend: None)
+
+    def no_hardlinks(*args, **kwargs):
+        raise OSError("hardlinks unavailable")
+
+    monkeypatch.setattr("core.serving.model_resolver.os.link", no_hardlinks)
+    resolver = HuggingFaceModelResolver(
+        lambda **_: str(blob), cache_dir=tmp_path / "adelie-cache"
+    )
+
+    first = resolver.resolve("hf://owner/repo/model.gguf")
+    second = resolver.resolve("hf://owner/repo/model.gguf")
+
+    assert first.local_path == second.local_path
+    assert second.local_path.name == "model.gguf"
+    assert second.local_path.is_symlink()
+    assert second.local_path.samefile(blob)
+
+
 def test_remote_non_gguf_is_rejected_before_download(monkeypatch) -> None:
     monkeypatch.setattr("core.serving.model_resolver._check_runtime", lambda backend: None)
     with pytest.raises(ModelResolutionError, match="GGUF only"):

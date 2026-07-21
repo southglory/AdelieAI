@@ -9,7 +9,7 @@
     {% if t.id %}
     {# 3-tier rating + dismiss (Step 6.2 refactor). DB column unchanged,
        semantics: 0=dismiss · 1=bad · 2=fine · 3=good. None=not interacted. #}
-    <div class="rating" role="radiogroup" aria-label="이 답변 평가 — DPO 데이터 수집">
+    <div class="rating" role="radiogroup" aria-label="Rate this response for DPO feedback">
         {% set _v = t.rating %}
         <button type="button"
                 class="rate-btn rate-bad {% if _v == 1 %}selected{% endif %}"
@@ -17,35 +17,35 @@
                 hx-vals='{"rating": 1}'
                 hx-target="#turn-{{ t.id }}"
                 hx-swap="outerHTML"
-                aria-label="별로">👎 bad</button>
+                aria-label="bad">bad</button>
         <button type="button"
                 class="rate-btn rate-fine {% if _v == 2 %}selected{% endif %}"
                 hx-post="/web/chat/{{ persona.persona_id }}/turns/{{ t.id }}/rate"
                 hx-vals='{"rating": 2}'
                 hx-target="#turn-{{ t.id }}"
                 hx-swap="outerHTML"
-                aria-label="괜찮음">➖ fine</button>
+                aria-label="fine">fine</button>
         <button type="button"
                 class="rate-btn rate-good {% if _v == 3 %}selected{% endif %}"
                 hx-post="/web/chat/{{ persona.persona_id }}/turns/{{ t.id }}/rate"
                 hx-vals='{"rating": 3}'
                 hx-target="#turn-{{ t.id }}"
                 hx-swap="outerHTML"
-                aria-label="좋음">👍 good</button>
+                aria-label="good">good</button>
         <button type="button"
                 class="rate-btn rate-dismiss {% if _v == 0 %}selected{% endif %}"
                 hx-post="/web/chat/{{ persona.persona_id }}/turns/{{ t.id }}/rate"
                 hx-vals='{"rating": 0}'
                 hx-target="#turn-{{ t.id }}"
                 hx-swap="outerHTML"
-                aria-label="평가 안 함"
-                title="이 turn 은 평가에서 제외 — 일반 잡담 등">⊘ dismiss</button>
+                aria-label="dismiss"
+                title="Exclude this turn from preference training">dismiss</button>
         <span class="rating-label">
             {% if _v == 1 %}bad
             {% elif _v == 2 %}fine
             {% elif _v == 3 %}good
             {% elif _v == 0 %}dismissed
-            {% else %}DPO 데이터 수집{% endif %}
+            {% else %}DPO feedback{% endif %}
         </span>
     </div>
     {% endif %}

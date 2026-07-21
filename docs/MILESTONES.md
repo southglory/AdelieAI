@@ -23,6 +23,7 @@ ref 는 commit short hash, iteration report 파일명, 또는 Step 번호.
 ## 2026-07-21
 
 - 2026-07-21 [personas/activation] **Adelie Drop Wave 1–2** — Character Card V2 JSON/PNG와 zipped `.adelie` import, 안전한 pack validation, `packs/*.adelie/` 자동 발견, import UI, `adelie validate/run` CLI, local/Hugging Face model resolver를 하나의 import → chat 골든패스로 연결. 제어 팩과 공유 모델 가중치 경계는 ADR 0001로 기록. **323 passed, 1 skipped**. → `c030298`, `dd0e2ea`
+- 2026-07-21 [serving/real-gguf] **Adelie Drop Wave 3 실가중치 검증** — `hf://ramyun/adelie-qwen-roleplay-v2-gguf/qwen-roleplay-v2.q4_k_m.gguf` 4,683,073,600 bytes 다운로드(SHA-256 `0140128e…d0c07`), HF의 무확장자 content blob을 무복제 `.gguf` runtime hardlink로 보정하고 same-size blob 갱신까지 처리. 실제 `adelie run` → Character Card import → CPU 응답 **2.7 s / 12 tok**, browser console/network error 0. **327 passed**, Stub/real GGUF browser E2E 각 1 passed. → `docs/screenshots/36_adelie_drop_real_gguf.png`
 - 2026-07-21 [tools/evidence-search] 하드코딩 사건 dict를 `personas/cold_detective/rag_corpus/` 실제 파일 + 교체 가능한 `EvidenceSearchPort`/filesystem adapter로 교체. 기존 hit 계약 유지, backend/source/error 메타데이터 추가. → `2e800dc`
 
 ## 2026-04-29

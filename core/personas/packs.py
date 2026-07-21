@@ -65,7 +65,9 @@ class PersonaPackManifest(BaseModel):
     persona_id: str
     display_name: str
     description: str = ""
-    emoji: str = "🎭"
+    # A text glyph keeps imported cards legible on minimal Linux/browser images
+    # where color-emoji fonts are commonly absent.
+    emoji: str = "◆"
     language: str = "ko"
     license: str = "unspecified"
     system_prompt: str = "system_prompt.md"

@@ -117,11 +117,16 @@ class HuggingFaceModelResolver:
             raise ModelResolutionError(f"downloaded model is missing: {downloaded}")
 
         repo_slug = repo_id.replace("/", "--")
-        destination = (self.cache_dir / repo_slug / filename).resolve()
+        # Keep the runtime-facing name even when the fallback below is a
+        # symlink; Path.resolve() would collapse it back to the suffixless blob.
+        destination = (self.cache_dir / repo_slug / filename).absolute()
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists():
-            if destination.stat().st_size == downloaded.stat().st_size:
-                return destination
+            try:
+                if destination.samefile(downloaded):
+                    return destination
+            except OSError:
+                pass
             destination.unlink()
 
         temporary = destination.with_name(destination.name + ".tmp")
