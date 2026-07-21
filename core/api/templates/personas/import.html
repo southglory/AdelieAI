@@ -5,8 +5,8 @@
         <span class="eyebrow">ADELIE DROP · LOCAL FIRST</span>
         <h1>Bring a character.<br><em>Keep it yours.</em></h1>
         <p>
-            Character Card V2 또는 <code>.adelie</code> 팩을 가져오면
-            검증된 시스템 프롬프트로 즉시 로컬 채팅을 시작합니다.
+            Import a Character Card V2 or <code>.adelie</code> pack and start a
+            private local chat with its validated persona prompt.
         </p>
         <div class="promise-row">
             <span><b>01</b> import</span>
@@ -16,7 +16,7 @@
     </div>
 
     <form class="drop-zone" action="/web/personas/import" method="post" enctype="multipart/form-data">
-        <div class="penguin-mark">🐧</div>
+        <img class="penguin-mark" src="/static/adelie.png" alt="Adelie penguin">
         <h2>Drop your persona</h2>
         <p>PNG · JSON · zipped .adelie</p>
         <label class="file-control">
@@ -24,16 +24,16 @@
             <span id="file-label">Choose a character file</span>
         </label>
         <button type="submit">Import &amp; open chat <span>→</span></button>
-        <small>최대 10 MB의 제어 파일만 허용합니다. 모델 가중치는 별도로 연결됩니다.</small>
+        <small>Control files are limited to 10 MB. Model weights are resolved separately.</small>
         <div class="runtime-now">active runtime <code>{{ request.app.state.llm.model_id }}</code></div>
         {% if error %}<div class="import-error" role="alert"><b>Import blocked</b>{{ error }}</div>{% endif %}
     </form>
 </section>
 
 <section class="format-strip" aria-label="supported formats">
-    <div><strong>Character Card V2</strong><span>기존 캐릭터 생태계에서 가져오기</span></div>
-    <div><strong>Adelie Pack</strong><span>검증된 prompt · RAG · runtime metadata</span></div>
-    <div><strong>Private runtime</strong><span>Stub 즉시 체험 · GGUF 연결 준비</span></div>
+    <div><strong>Character Card V2</strong><span>Bring characters from the existing ecosystem</span></div>
+    <div><strong>Adelie Pack</strong><span>Validated prompt · RAG · runtime metadata</span></div>
+    <div><strong>Private runtime</strong><span>Instant Stub preview · GGUF ready</span></div>
 </section>
 
 <style>
@@ -47,7 +47,7 @@
 .promise-row { display:flex; gap:1.5rem; margin-top:2rem; color:#d5e2ea; font:600 .78rem ui-monospace,monospace; text-transform:uppercase; }
 .promise-row b { color:#77d4ff; margin-right:.35rem; }
 .drop-zone { min-height:390px; padding:2.2rem; border:1px solid rgba(141,227,193,.45); border-radius:20px; background:rgba(7,21,33,.72); box-shadow:0 24px 70px rgba(0,0,0,.28); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; backdrop-filter:blur(12px); }
-.penguin-mark { font-size:3.2rem; filter:drop-shadow(0 8px 16px rgba(0,0,0,.25)); }
+.penguin-mark { width:58px; height:58px; object-fit:cover; border-radius:14px; filter:drop-shadow(0 8px 16px rgba(0,0,0,.25)); }
 .drop-zone h2 { margin:.7rem 0 .25rem; font-size:1.55rem; }
 .drop-zone>p { margin:0 0 1.4rem; color:#8297a6; font:500 .78rem ui-monospace,monospace; }
 .file-control { width:100%; border:1px dashed #49677b; border-radius:12px; padding:1.2rem; color:#c8d7e0; cursor:pointer; background:rgba(255,255,255,.025); }

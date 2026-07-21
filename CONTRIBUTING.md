@@ -5,7 +5,7 @@ One more footprint on the ice — welcome.
 ## First-time guide
 
 1. **Open an issue first.** Substantial changes go through an issue so we can agree on intent before code.
-2. **Tests required.** New features ship with new tests. `pytest tests -q` must stay green (147/147).
+2. **Tests required.** New features ship with new tests. `pytest tests -q` must stay green.
 3. **Provenance is mandatory.** Anything pulled from outside (a model, a snippet, a corpus) needs a `MANIFEST.json` or a `# PROVENANCE` comment naming source URL, revision, and license.
 4. **Apache-2.0 compatible only.** We don't accept code or model weights with incompatible licenses.
 

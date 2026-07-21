@@ -20,6 +20,11 @@ ref 는 commit short hash, iteration report 파일명, 또는 Step 번호.
 
 ---
 
+## 2026-07-21
+
+- 2026-07-21 [personas/activation] **Adelie Drop Wave 1–2** — Character Card V2 JSON/PNG와 zipped `.adelie` import, 안전한 pack validation, `packs/*.adelie/` 자동 발견, import UI, `adelie validate/run` CLI, local/Hugging Face model resolver를 하나의 import → chat 골든패스로 연결. 제어 팩과 공유 모델 가중치 경계는 ADR 0001로 기록. **323 passed, 1 skipped**. → `c030298`, `dd0e2ea`
+- 2026-07-21 [tools/evidence-search] 하드코딩 사건 dict를 `personas/cold_detective/rag_corpus/` 실제 파일 + 교체 가능한 `EvidenceSearchPort`/filesystem adapter로 교체. 기존 hit 계약 유지, backend/source/error 메타데이터 추가. → `2e800dc`
+
 ## 2026-04-29
 
 - 2026-04-29 [serving/stub] (3회차 — 정석 분리) **ScriptedLLMClient 신설 + 테스트 책임 분리**. 직전 fix (last_user_text seed + depth) 가 라이브 서버에선 여전히 mod-N collision (5 lines, ~20%). 근본 원인 검토 결과 *stub 이 real LLM 흉내내려다 buggy* 인 안티패턴. 정석 fix: `core/serving/scripted_client.py` (queue 기반, exhaustion 시 ValueError, optional cycle), 테스트 책임 분리 — DPO/sampling 의존 테스트는 Scripted 사용 (예: `test_dpo_pair_count_surfaces_after_good_and_bad`), stub 자체 contract 는 별도 (`tests/test_stub_client.py` — rotation guarantee). `docs/serving/README.md` 에 결정 트리 추가. **305/305 tests** (16 신규: scripted 9 + stub_client 4 + 마이그레이션 3). 라이브 검증 — 3 prompt → 3 distinct reply. 티켓 #62 클로즈 (v2 fix + Path C 분리). → 다음 commit
