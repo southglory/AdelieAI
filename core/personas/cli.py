@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from core.personas.packs import PackValidationError, PersonaImportService, load_persona_pack
+from core.serving.model_resolver import DefaultModelResolver, ModelResolutionError
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -19,6 +20,10 @@ def _parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="optionally import a character and start the web console")
     run.add_argument("source", type=Path, nargs="?")
     run.add_argument("--packs-dir", type=Path, default=Path("packs"))
+    run.add_argument(
+        "--model",
+        help="local GGUF/Transformers path or hf://owner/repo/file.gguf",
+    )
     run.add_argument("--host", default="127.0.0.1")
     run.add_argument("--port", type=int, default=8770)
     run.add_argument("--no-open", action="store_true", help="do not open the browser")
@@ -34,6 +39,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         os.environ["ADELIE_PACKS_DIR"] = str(args.packs_dir)
+        if args.model:
+            resolved_model = DefaultModelResolver().resolve(args.model)
+            os.environ["MODEL_PATH"] = str(resolved_model.local_path)
+            print(
+                f"model: {resolved_model.backend} from {resolved_model.source} "
+                f"at {resolved_model.local_path}"
+            )
         imported_id = None
         if args.source is not None:
             payload = args.source.read_bytes()
@@ -50,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
             threading.Timer(0.8, webbrowser.open, args=(f"http://{args.host}:{args.port}{path}",)).start()
         uvicorn.run("core.api.app:app", host=args.host, port=args.port, reload=False)
         return 0
-    except (OSError, PackValidationError) as exc:
+    except (OSError, ModelResolutionError, PackValidationError) as exc:
         print(f"error: {exc}")
         return 2
 

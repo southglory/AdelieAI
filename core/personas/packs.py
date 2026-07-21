@@ -301,6 +301,7 @@ class CharacterCardImporter:
             persona_id=persona_id,
             display_name=name,
             description=description[:500],
+            base_model="active-runtime",
             source={"format": self.source_format, "filename": Path(filename).name},
         )
         packs_dir.mkdir(parents=True, exist_ok=True)

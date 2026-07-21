@@ -38,6 +38,9 @@ train = [
     "datasets>=2.20",
     "bitsandbytes>=0.43",
 ]
+cpu = [
+    "llama-cpp-python>=0.3",
+]
 
 [project.scripts]
 adelie = "core.personas.cli:main"
